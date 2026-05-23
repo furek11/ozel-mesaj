@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Özel Alan</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="giris-ekrani" class="kutu">
+        <h2>Giriş Yap</h2>
+        <input type="text" id="kullanici-adi" placeholder="Kullanıcı Adı">
+        <input type="password" id="sifre" placeholder="Şifre">
+        <button onclick="girisYap()">Giriş Yap</button>
+        <p id="hata-mesaji" class="hata"></p>
+    </div>
+
+    <div id="sohbet-ekrani" class="kutu gizli">
+        <div class="sohbet-baslik">
+            <h2>🔒 Özel Sohbet Odası</h2>
+            <span id="giriş yapan-kullanici"></span>
+        </div>
+        <div id="mesajlar-alani"></div>
+        <div class="mesaj-gonder-alani">
+            <input type="text" id="mesaj-girdisi" placeholder="Bir şeyler yazın...">
+            <button onclick="mesajGonder()">Gönder</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
