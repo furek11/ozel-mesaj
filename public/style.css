@@ -1,31 +1,179 @@
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-body { background-color: #efeae2; display: flex; justify-content: center; align-items: center; height: 100vh; }
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+}
+
+body { 
+    background-color: #0b141a; /* WhatsApp Karanlık Arka Plan */
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    height: 100vh; 
+}
+
 .hidden { display: none !important; }
-.card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; width: 350px; }
-input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 20px; outline: none; }
-button { width: 100%; padding: 12px; background-color: #00a884; color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
-button:hover { background-color: #008f72; }
-.error { color: #ea0038; font-size: 14px; margin-top: 5px; }
 
-/* WhatsApp Tasarımı */
-#chat-container { width: 450px; height: 85vh; background: #efeae2; display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
-#chat-header { background-color: #00a884; color: white; padding: 10px 15px; display: flex; align-items: center; }
+/* Giriş Ekranı (Karanlık Versiyon) */
+.card { 
+    background: #1f2c34; 
+    padding: 30px; 
+    border-radius: 12px; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
+    text-align: center; 
+    width: 350px; 
+    color: #e9edef;
+}
+
+.card h2 {
+    margin-bottom: 10px;
+    color: #e9edef;
+}
+
+.card p {
+    color: #8696a0;
+    font-size: 14px;
+}
+
+input { 
+    width: 100%; 
+    padding: 12px; 
+    margin: 15px 0; 
+    border: 1px solid #2a3942; 
+    background-color: #2a3942;
+    color: #e9edef;
+    border-radius: 20px; 
+    outline: none; 
+}
+
+input::placeholder {
+    color: #8696a0;
+}
+
+button { 
+    width: 100%; 
+    padding: 12px; 
+    background-color: #00a884; /* WhatsApp Yeşili */
+    color: #111b21; 
+    border: none; 
+    border-radius: 20px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    font-size: 15px;
+}
+
+button:hover { 
+    background-color: #006653; 
+    color: #e9edef;
+}
+
+.error { color: #f15c6d; font-size: 14px; margin-top: 5px; }
+
+/* WhatsApp Canlı Sohbet Penceresi (Karanlık Versiyon) */
+#chat-container { 
+    width: 450px; 
+    height: 85vh; 
+    background: #0b141a; 
+    display: flex; 
+    flex-direction: column; 
+    border-radius: 10px; 
+    overflow: hidden; 
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5); 
+    border: 1px solid #222e35;
+}
+
+#chat-header { 
+    background-color: #202c33; /* Üst Bar Rengi */
+    color: #e9edef; 
+    padding: 12px 20px; 
+    display: flex; 
+    align-items: center; 
+    border-bottom: 1px solid #222e35;
+}
+
 .user-info { display: flex; flex-direction: column; }
-#chat-partner-name { font-weight: bold; font-size: 16px; }
-#chat-partner-status { font-size: 12px; color: #f0f2f5; margin-top: 2px; transition: color 0.3s; }
+#chat-partner-name { font-weight: bold; font-size: 16px; color: #e9edef; }
+#chat-partner-status { font-size: 12px; margin-top: 2px; transition: color 0.3s; }
 
-#messages-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); }
+/* Mesaj Alanı ve Meşhur WhatsApp Duvar Kağıdının Karanlık Hali */
+#messages-box { 
+    flex: 1; 
+    padding: 20px; 
+    overflow-y: auto; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; 
+    background-color: #0b141a;
+    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); 
+    background-blend-mode: overlay; /* Görseli koyulaştırmak için */
+    opacity: 0.95;
+}
 
 .message-wrapper { display: flex; width: 100%; }
-.message { max-width: 75%; padding: 6px 10px 20px 12px; border-radius: 8px; font-size: 15px; line-height: 1.4; word-wrap: break-word; position: relative; min-width: 80px; }
-.my-message { background-color: #d9fdd3; margin-left: auto; border-top-right-radius: 0; color: #111b21; }
-.other-message { background-color: #ffffff; margin-right: auto; border-top-left-radius: 0; color: #111b21; }
 
-/* Saat ve Tik Tasarımı */
-.message-meta { position: absolute; bottom: 2px; right: 7px; display: flex; align-items: center; gap: 3px; font-size: 11px; color: #667781; user-select: none; }
-.status-tick { font-weight: bold; font-size: 13px; color: #8696a0; }
-.status-tick.read { color: #53bdeb; } /* WhatsApp Mavi Tik Rengi */
+/* Baloncuk Tasarımları */
+.message { 
+    max-width: 75%; 
+    padding: 8px 14px 22px 14px; 
+    border-radius: 8px; 
+    font-size: 15px; 
+    line-height: 1.4; 
+    word-wrap: break-word; 
+    position: relative; 
+    min-width: 90px; 
+}
 
-#input-area { background-color: #f0f2f5; padding: 10px; display: flex; gap: 10px; align-items: center; }
-#input-area input { margin: 0; background: white; }
-#input-area button { width: auto; padding: 12px 20px; }
+/* Benim Mesajım (Koyu Yeşil Baloncuk) */
+.my-message { 
+    background-color: #005c4b; 
+    margin-left: auto; 
+    border-top-right-radius: 0; 
+    color: #e9edef; 
+}
+
+/* Karşı Tarafın Mesajı (Koyu Gri Baloncuk) */
+.other-message { 
+    background-color: #202c33; 
+    margin-right: auto; 
+    border-top-left-radius: 0; 
+    color: #e9edef; 
+}
+
+/* Saat ve Mavi Tik Alanı */
+.message-meta { 
+    position: absolute; 
+    bottom: 3px; 
+    right: 8px; 
+    display: flex; 
+    align-items: center; 
+    gap: 4px; 
+    font-size: 11px; 
+    color: #8696a0; 
+    user-select: none; 
+}
+
+.status-tick { font-weight: bold; font-size: 12px; color: #8696a0; }
+.status-tick.read { color: #53bdeb; } /* Meşhur Mavi Tik */
+
+/* Alt Giriş Alanı */
+#input-area { 
+    background-color: #202c33; 
+    padding: 10px 15px; 
+    display: flex; 
+    gap: 12px; 
+    align-items: center; 
+    border-top: 1px solid #222e35;
+}
+
+#input-area input { 
+    margin: 0; 
+    background: #2a3942; 
+    border: none;
+    color: #e9edef;
+}
+
+#input-area button { 
+    width: auto; 
+    padding: 12px 24px; 
+}
