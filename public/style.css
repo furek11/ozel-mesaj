@@ -9,14 +9,22 @@ button:hover { background-color: #008f72; }
 
 /* WhatsApp Tasarımı */
 #chat-container { width: 450px; height: 85vh; background: #efeae2; display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
-#chat-header { background-color: #00a884; color: white; padding: 15px; display: flex; align-items: center; font-weight: bold; }
-#messages-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* Klasik WA Arka Planı */ }
+#chat-header { background-color: #00a884; color: white; padding: 10px 15px; display: flex; align-items: center; }
+.user-info { display: flex; flex-direction: column; }
+#chat-partner-name { font-weight: bold; font-size: 16px; }
+#chat-partner-status { font-size: 12px; color: #f0f2f5; margin-top: 2px; transition: color 0.3s; }
 
-/* Baloncuk Yapısı */
+#messages-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); }
+
 .message-wrapper { display: flex; width: 100%; }
-.message { max-width: 75%; padding: 8px 14px; border-radius: 8px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
+.message { max-width: 75%; padding: 6px 10px 20px 12px; border-radius: 8px; font-size: 15px; line-height: 1.4; word-wrap: break-word; position: relative; min-width: 80px; }
 .my-message { background-color: #d9fdd3; margin-left: auto; border-top-right-radius: 0; color: #111b21; }
 .other-message { background-color: #ffffff; margin-right: auto; border-top-left-radius: 0; color: #111b21; }
+
+/* Saat ve Tik Tasarımı */
+.message-meta { position: absolute; bottom: 2px; right: 7px; display: flex; align-items: center; gap: 3px; font-size: 11px; color: #667781; user-select: none; }
+.status-tick { font-weight: bold; font-size: 13px; color: #8696a0; }
+.status-tick.read { color: #53bdeb; } /* WhatsApp Mavi Tik Rengi */
 
 #input-area { background-color: #f0f2f5; padding: 10px; display: flex; gap: 10px; align-items: center; }
 #input-area input { margin: 0; background: white; }
