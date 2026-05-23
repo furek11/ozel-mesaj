@@ -1,38 +1,43 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+const path = require('path');
 
-// Sadece senin ve X kişisinin giriş bilgilerini burada belirliyoruz
-const GECERLI_KULLANICILAR = {
-    "senin_kullanici_adin": "senin_sifren",
-    "x_kullanici_adi": "x_sifresi"
-};
+// Render'ın bize vereceği portu veya yerelde 3000'i kullanıyoruz
+const PORT = process.env.PORT || 3000;
 
-// Web sitesi dosyalarımızın duracağı klasörü belirtiyoruz
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Biri siteye bağlandığında (Anlık iletişim başlangıcı)
+// Güvenli Şifreler (Canlıda bunları Render panelinden yöneteceğiz)
+const SIFRE_BIYOLOJI = process.env.SIFRE_BIYOLOJI || "biyo123";
+const SIFRE_MATEMATIK = process.env.SIFRE_MATEMATIK || "mat123";
+
 io.on('connection', (socket) => {
-    console.log('Biri sayfaya bağlandı!');
+    let currentUser = null;
 
-    // Bir mesaj geldiğinde bunu diğer kişiye ilet
-    socket.on('yeni-mesaj', (data) => {
-        // Gelen mesajı odadaki herkese (yani diğer kişiye) yayınla
-        io.emit('mesaj-al', data);
+    // Giriş kontrolü (Sadece şifre alıyoruz)
+    socket.on('auth', (password) => {
+        if (password === SIFRE_BIYOLOJI) {
+            currentUser = "Biyolojinin Son Kalesi";
+            socket.emit('auth_success', { username: currentUser });
+        } else if (password === SIFRE_MATEMATIK) {
+            currentUser = "Mat Dehası";
+            socket.emit('auth_success', { username: currentUser });
+        } else {
+            socket.emit('auth_fail', 'Geçersiz Şifre!');
+        }
     });
 
-    // Bağlantı koptuğunda
-    socket.on('disconnect', () => {
-        console.log('Kullanıcı ayrıldı.');
+    // Mesaj gönderme
+    socket.on('chat_message', (msg) => {
+        if (currentUser) {
+            // Mesajı gönderen, mesaj metni ve gönderen kişinin kim olduğu
+            io.emit('chat_message', { text: msg, sender: currentUser });
+        }
     });
 });
 
-// Sunucunun çalışacağı port (Bilgisayarımızda 3000 portunda çalışacak)
-const PORT = 3000;
-server.listen(PORT, () => {
-    console.log(`Sitemiz şu an hazır! Tarayıcıdan http://localhost:${PORT} adresine giderek görebilirsin.`);
+http.listen(PORT, () => {
+    console.log(`Sunucu ${PORT} portunda çalışıyor...`);
 });

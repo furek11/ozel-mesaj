@@ -3,28 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Özel Alan</title>
+    <title>Özel Sohbet</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <div id="giris-ekrani" class="kutu">
-        <h2>Giriş Yap</h2>
-        <input type="text" id="kullanici-adi" placeholder="Kullanıcı Adı">
-        <input type="password" id="sifre" placeholder="Şifre">
-        <button onclick="girisYap()">Giriş Yap</button>
-        <p id="hata-mesaji" class="hata"></p>
+    <div id="login-container" class="card">
+        <h2>Güvenli Giriş</h2>
+        <p>Erişim sağlamak için şifrenizi girin.</p>
+        <input type="password" id="password-input" placeholder="Şifreniz">
+        <button id="login-btn">Giriş Yap</button>
+        <p id="error-msg" class="error"></p>
     </div>
 
-    <div id="sohbet-ekrani" class="kutu gizli">
-        <div class="sohbet-baslik">
-            <h2>🔒 Özel Sohbet Odası</h2>
-            <span id="giriş yapan-kullanici"></span>
+    <div id="chat-container" class="hidden">
+        <div id="chat-header">
+            <div class="user-info">
+                <span id="chat-partner-name">Sohbet Odası</span>
+                <span class="status-dot"></span>
+            </div>
         </div>
-        <div id="mesajlar-alani"></div>
-        <div class="mesaj-gonder-alani">
-            <input type="text" id="mesaj-girdisi" placeholder="Bir şeyler yazın...">
-            <button onclick="mesajGonder()">Gönder</button>
+        <div id="messages-box"></div>
+        <div id="input-area">
+            <input type="text" id="message-input" placeholder="Mesajınızı yazın...">
+            <button id="send-btn">Gönder</button>
         </div>
     </div>
 
