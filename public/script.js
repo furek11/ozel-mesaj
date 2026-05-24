@@ -2,6 +2,7 @@ const socket = io();
 
 let myUsername = "";
 let partnerUsername = "";
+let typingTimeout = null;
 
 // DOM Elementleri
 const loginScreen = document.getElementById('login-screen');
@@ -19,12 +20,10 @@ const targetNameSide = document.getElementById('target-name-side');
 const targetStatus = document.getElementById('target-status');
 const sideStatus = document.getElementById('side-status');
 
-// Mobil ve Genel Kontrol Butonları
 const chatItem = document.querySelector('.chat-item');
 const backToListBtn = document.getElementById('back-to-list-btn');
 const fullscreenToggleBtn = document.getElementById('fullscreen-toggle-btn');
 
-// Sunucu uykudan uyandığında tarayıcı hafızasından yedek verileri fırlatır
 socket.on('request_last_seen_backup', () => {
     const localBackup = {
         biyoloji: localStorage.getItem('lastSeen_biyoloji'),
@@ -33,38 +32,69 @@ socket.on('request_last_seen_backup', () => {
     socket.emit('provide_last_seen_backup', localBackup);
 });
 
-// Otomatik Tam Ekran Başlatıcı
 function activateFullscreen() {
     const docEl = document.documentElement;
     if (docEl.requestFullscreen) {
-        docEl.requestFullscreen().catch(err => console.log("Tam ekran başlatılamadı:", err));
-    } else if (docEl.mozRequestFullScreen) {
-        docEl.mozRequestFullScreen();
+        docEl.requestFullscreen().catch(err => console.log(err));
     } else if (docEl.webkitRequestFullscreen) {
         docEl.webkitRequestFullscreen();
-    } else if (docEl.msRequestFullscreen) {
-        docEl.msRequestFullscreen();
     }
 }
 
-// Mobil Klavye Altında Kalma Çözümü (VisualViewport Motoru)
+// Geliştirilmiş Mobil Klavye Sabitleyici (Z-Index ve Kadraj Koruma Motoru)
 if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', () => {
-        const keyboardHeight = window.innerHeight - window.visualViewport.height;
-        if (keyboardHeight > 100) {
-            // Klavye açıldığında tüm layout'u tam viewport boyuna sabitle
-            appContainer.style.height = `${window.visualViewport.height}px`;
-            document.body.style.height = `${window.visualViewport.height}px`;
-            chatMessages.scrollTop = chatMessages.scrollHeight; // Mesajları kaydır
+        const currentViewportHeight = window.visualViewport.height;
+        const totalWindowHeight = window.innerHeight;
+        
+        // Klavye açıldıysa daralmayı yakala
+        if (currentViewportHeight < totalWindowHeight - 60) {
+            // Ana gövdeyi daralan viewport boyuna getir, yukarı taşmayı kilitle
+            appContainer.style.height = `${currentViewportHeight}px`;
+            document.body.style.height = `${currentViewportHeight}px`;
+            
+            // Mesaj alanını ve footer konumunu yeniden hesapla
+            const mainChatEl = document.querySelector('.main-chat');
+            mainChatEl.style.height = `${currentViewportHeight}px`;
+            
+            // Mesajları en alta kaydır
+            setTimeout(() => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 50);
         } else {
-            // Klavye kapandığında normale dön
+            // Klavye kapandığında orijinal boyutlara çek
             appContainer.style.height = '100dvh';
             document.body.style.height = '100dvh';
+            const mainChatEl = document.querySelector('.main-chat');
+            mainChatEl.style.height = '100%';
         }
     });
 }
 
-// Kimlik Doğrulama İstek Gönderimi
+// "Yazıyor..." Tetikleme Mekanizması
+messageInput.addEventListener('input', () => {
+    // Sunucuya yazıyor bilgisini gönder
+    socket.emit('typing_status', true);
+
+    // Eski zamanlayıcıyı temizle, kullanıcı yazmayı bırakınca tetiklenecek
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        socket.emit('typing_status', false);
+    }, 1500); // 1.5 saniye hareketsiz kalırsa yazıyor yazısı silinir
+});
+
+// Karşı tarafın yazma durumunu dinleme
+socket.on('user_typing', (data) => {
+    if (data.user === partnerUsername) {
+        if (data.typing) {
+            renderStatusTexts("yazıyor...");
+        } else {
+            // Yazmayı bıraktıysa sunucudan güncel durumu tekrar talep et veya durumu yenile
+            socket.emit('request_last_seen_backup');
+        }
+    }
+});
+
 loginBtn.addEventListener('click', () => {
     const pass = passwordInput.value.trim();
     if (pass) socket.emit('auth', pass);
@@ -77,44 +107,37 @@ passwordInput.addEventListener('keypress', (e) => {
     }
 });
 
-// Giriş Başarılı Olduğunda
 socket.on('auth_success', (data) => {
     myUsername = data.username;
     partnerUsername = myUsername === "Biyolojinin Son Kalesi" ? "Mat Dehası" : "Biyolojinin Son Kalesi";
     
-    // Mobil üst barları gizle
     activateFullscreen();
 
-    // Arayüz geçişleri
     loginScreen.classList.add('hidden');
     appContainer.classList.remove('hidden');
     
     targetNameTop.innerText = partnerUsername;
     targetNameSide.innerText = partnerUsername;
     
-    // Sunucudan gelen ham listeye göre ilk arayüz kurulumu
     if (data.statusList) {
         updateStatusUI(data.statusList[partnerUsername]);
     }
 });
 
-socket.on('auth_fail', (msg) => { 
-    alert(msg); 
-});
+socket.on('auth_fail', (msg) => { alert(msg); });
 
-// Mesaj Gönderme Motoru
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
 function sendMessage() {
     const text = messageInput.value.trim();
     if (text) {
+        socket.emit('typing_status', false); // Mesaj gittiği an yazıyor durumunu kapat
         socket.emit('chat_message', text);
         messageInput.value = '';
     }
 }
 
-// Mesaj Alındığında
 socket.on('chat_message', (data) => {
     const messageEl = document.createElement('div');
     messageEl.setAttribute('data-id', data.id);
@@ -140,7 +163,6 @@ socket.on('chat_message', (data) => {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-// Çift Mavi Tik Doğrulaması
 socket.on('message_read_confirm', (data) => {
     const targetTick = document.querySelector(`[data-id="${data.msgId}"] .status-tick`);
     if (targetTick) {
@@ -149,33 +171,35 @@ socket.on('message_read_confirm', (data) => {
     }
 });
 
-// Sunucudan Gelen Merkezi Durum Yönetim İstasyonu (Kökten Çözüm)
+// Merkezi Durum Dinleyicisi
 socket.on('status_update', (data) => {
     let partnerOnline = false;
     let partnerLastSeen = "Bilinmiyor";
+    let partnerTyping = false;
 
-    // Giriş yapan kişiye göre karşı tarafın bilgilerini ayıkla
     if (partnerUsername === "Mat Dehası") {
         partnerOnline = data.matOnline;
         partnerLastSeen = data.matLastSeen;
+        partnerTyping = data.matTyping;
         if (partnerLastSeen !== "Bilinmiyor") localStorage.setItem('lastSeen_mat', partnerLastSeen);
     } else {
         partnerOnline = data.biyolojiOnline;
         partnerLastSeen = data.biyolojiLastSeen;
+        partnerTyping = data.biyolojiTyping;
         if (partnerLastSeen !== "Bilinmiyor") localStorage.setItem('lastSeen_biyoloji', partnerLastSeen);
     }
 
-    // Ekrana basma mantığı
-    if (partnerOnline) {
+    // Öncelik Sıralaması: 1. Yazıyor, 2. Çevrimiçi, 3. Son Görülme
+    if (partnerTyping) {
+        renderStatusTexts("yazıyor...");
+    } else if (partnerOnline) {
         renderStatusTexts("çevrimiçi");
     } else {
-        // Eğer sunucu uykudan yeni uyandıysa tarayıcı hafızasındaki yedeği çek
         if (partnerLastSeen === "Bilinmiyor") {
             partnerLastSeen = (partnerUsername === "Mat Dehası") ? 
                 (localStorage.getItem('lastSeen_mat') || "Bilinmiyor") : 
                 (localStorage.getItem('lastSeen_biyoloji') || "Bilinmiyor");
         }
-
         if (partnerLastSeen !== "Bilinmiyor" && !partnerLastSeen.includes("Son görülme")) {
             partnerLastSeen = `Son görülme ${partnerLastSeen}`;
         }
@@ -183,10 +207,11 @@ socket.on('status_update', (data) => {
     }
 });
 
-// İlk girişteki UI güncellemesi
 function updateStatusUI(partnerStatusObj) {
     if (!partnerStatusObj) return;
-    if (partnerStatusObj.online) {
+    if (partnerStatusObj.typing) {
+        renderStatusTexts("yazıyor...");
+    } else if (partnerStatusObj.online) {
         renderStatusTexts("çevrimiçi");
     } else {
         let text = partnerStatusObj.lastSeen;
@@ -205,8 +230,9 @@ function updateStatusUI(partnerStatusObj) {
 function renderStatusTexts(text) {
     targetStatus.innerText = text;
     sideStatus.innerText = text;
-    if (text === "çevrimiçi") {
+    if (text === "çevrimiçi" || text === "yazıyor...") {
         targetStatus.style.color = "#00a884";
+        if(text === "yazıyor...") sideStatus.innerText = "yazıyor...";
         sideStatus.style.color = "#00a884";
     } else {
         targetStatus.style.color = "#8696a0";
@@ -214,7 +240,6 @@ function renderStatusTexts(text) {
     }
 }
 
-// Mobil Panel Geçişleri
 chatItem.addEventListener('click', () => {
     appContainer.classList.add('chat-active');
     setTimeout(() => { chatMessages.scrollTop = chatMessages.scrollHeight; }, 100);

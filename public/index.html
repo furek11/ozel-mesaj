@@ -24,7 +24,9 @@
         
         <aside class="side-panel">
             <header class="side-header">
-                <div class="user-avatar" id="my-avatar">👤</div>
+                <div class="user-avatar" id="my-avatar">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="#aebac1"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5-4-8-4z"/></svg>
+                </div>
                 <div class="side-actions">
                     <span class="action-icon">💬</span>
                     <span class="action-icon" id="fullscreen-toggle-btn" title="Tam Ekran Modu">⛶</span>
@@ -39,7 +41,13 @@
             
             <div class="chats-list">
                 <div class="chat-item active">
-                    <div class="chat-avatar">👤</div>
+                    <div class="chat-avatar custom-pp">
+                        <svg viewBox="0 0 100 100" width="100%" height="100%">
+                            <circle cx="50" cy="50" r="50" fill="#004d40"/>
+                            <text x="50" y="42" font-size="28" fill="#53bdeb" font-weight="bold" text-anchor="middle" font-family="monospace">f(x)</text>
+                            <text x="50" y="78" font-size="34" fill="#00a884" font-weight="bold" text-anchor="middle" font-family="monospace">∑</text>
+                        </svg>
+                    </div>
                     <div class="chat-info">
                         <div class="chat-main-row">
                             <h3 id="target-name-side">Sohbet Edilen Kişi</h3>
@@ -55,7 +63,13 @@
                 <div class="chat-header-info">
                     <button type="button" id="back-to-list-btn" class="back-btn">←</button>
                     
-                    <div class="chat-avatar">👤</div>
+                    <div class="chat-avatar custom-pp" style="width: 40px; height: 40px; margin-right: 12px;">
+                        <svg viewBox="0 0 100 100" width="100%" height="100%">
+                            <circle cx="50" cy="50" r="50" fill="#004d40"/>
+                            <text x="50" y="42" font-size="28" fill="#53bdeb" font-weight="bold" text-anchor="middle" font-family="monospace">f(x)</text>
+                            <text x="50" y="78" font-size="34" fill="#00a884" font-weight="bold" text-anchor="middle" font-family="monospace">∑</text>
+                        </svg>
+                    </div>
                     <div class="chat-user-details">
                         <h3 id="target-name-top">Yükleniyor...</h3>
                         <span id="target-status" class="status-text">bağlanıyor...</span>
@@ -71,7 +85,15 @@
                     <button type="button" id="emoji-dummy-btn">😀</button>
                     <button type="button" id="attach-dummy-btn">📎</button>
                 </div>
-                <input type="text" id="message-input" placeholder="Bir mesaj yazın" autocomplete="off" autocapitalize="sentences" spellcheck="false" data-form-type="other" name="secure_message_input" />
+                <input type="text" id="message-input" placeholder="Bir mesaj yazın" 
+                       autocomplete="new-password" 
+                       autocorrect="off" 
+                       autocapitalize="sentences" 
+                       spellcheck="false" 
+                       data-lpignore="true" 
+                       data-form-type="other" 
+                       role="presentation"
+                       name="random_msg_field_" />
                 <button type="button" id="send-btn">
                     <svg viewBox="0 0 24 24" width="24" height="24">
                         <path fill="currentColor" d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"></path>
