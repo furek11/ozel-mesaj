@@ -2,15 +2,19 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Özel Güvenli Mesajlaşma</title>
     <link rel="stylesheet" href="style.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
 
     <div id="login-screen" class="auth-container">
         <div class="auth-card">
             <h2>Güvenli Giriş</h2>
+            <p style="font-size: 11px; color: #8696a0; margin-bottom: 15px;">En iyi mobil deneyim için giriş yaptıktan sonra tam ekrana geçilecektir.</p>
             <input type="password" id="password-input" placeholder="Erişim Şifresi" />
             <button id="login-btn">Giriş Yap</button>
         </div>
@@ -23,7 +27,7 @@
                 <div class="user-avatar" id="my-avatar">👤</div>
                 <div class="side-actions">
                     <span class="action-icon">💬</span>
-                    <span class="action-icon">⋮</span>
+                    <span class="action-icon" id="fullscreen-toggle-btn" title="Tam Ekran Modu">⛶</span>
                 </div>
             </header>
             
@@ -49,6 +53,8 @@
         <main class="main-chat">
             <header class="chat-header">
                 <div class="chat-header-info">
+                    <button type="button" id="back-to-list-btn" class="back-btn">←</button>
+                    
                     <div class="chat-avatar">👤</div>
                     <div class="chat-user-details">
                         <h3 id="target-name-top">Yükleniyor...</h3>

@@ -3,16 +3,23 @@
     padding: 0;
     box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
     background-color: #0b141a;
     color: #e9edef;
     height: 100vh;
+    height: -webkit-fill-available; /* Mobil Safari için tam boy uyumu */
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    position: relative;
+}
+
+html {
+    height: -webkit-fill-available;
 }
 
 /* Şifre Giriş Ekranı Tasarımı */
@@ -37,7 +44,7 @@ body {
 }
 
 .auth-card h2 {
-    margin-bottom: 20px;
+    margin-bottom: 5px;
     font-size: 20px;
     color: #e9edef;
 }
@@ -216,6 +223,7 @@ body {
 .chat-header-info {
     display: flex;
     align-items: center;
+    width: 100%;
 }
 
 .chat-header-info .chat-avatar {
@@ -246,7 +254,7 @@ body {
 
 /* Mesaj Balon Tipleri */
 .message {
-    max-width: 65%;
+    max-width: 75%;
     padding: 6px 10px 8px 10px;
     border-radius: 8px;
     font-size: 14.2px;
@@ -325,4 +333,67 @@ body {
 
 #send-btn:hover {
     color: #e9edef;
+}
+
+.back-btn {
+    display: none;
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVE (TELEFONLAR İÇİN)
+   ========================================================================== */
+@media (max-width: 768px) {
+    .app-layout {
+        flex-direction: column;
+        position: relative;
+    }
+
+    .side-panel, .main-chat {
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: 100vh;
+        position: absolute;
+        top: 0;
+        left: 0;
+        transition: transform 0.25s ease-in-out;
+    }
+
+    /* Girişte sadece sol panel (liste) aktif */
+    .side-panel {
+        z-index: 2;
+        transform: translateX(0);
+    }
+
+    /* Sağ panel (mesajlaşma) sağda bekliyor */
+    .main-chat {
+        z-index: 1;
+        transform: translateX(100%);
+    }
+
+    /* Sohbet tıklandığında sol paneli uçur, sağ paneli getir */
+    .app-layout.chat-active .side-panel {
+        transform: translateX(-100%);
+    }
+
+    .app-layout.chat-active .main-chat {
+        z-index: 3;
+        transform: translateX(0);
+    }
+
+    /* Geri oku butonu mobilde aktif */
+    .back-btn {
+        display: inline-block !important;
+        background: none;
+        border: none;
+        color: #aebac1;
+        font-size: 24px;
+        margin-right: 12px;
+        cursor: pointer;
+        outline: none;
+    }
+    
+    .message {
+        max-width: 85%; /* Mobilde mesaj balonları biraz daha geniş yer kaplayabilir */
+    }
 }

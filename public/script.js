@@ -3,7 +3,7 @@ const socket = io();
 let myUsername = "";
 let partnerUsername = "";
 
-// Yeni HTML yapısına göre güncellenmiş DOM Elementleri
+// DOM Elementleri
 const loginScreen = document.getElementById('login-screen');
 const appContainer = document.getElementById('app-container');
 const passwordInput = document.getElementById('password-input');
@@ -13,13 +13,18 @@ const chatMessages = document.getElementById('chat-messages');
 const messageInput = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
 
-// WhatsApp Web Düzeni için Hedef Alanlar
+// WhatsApp Arayüz Elementleri
 const targetNameTop = document.getElementById('target-name-top');
 const targetNameSide = document.getElementById('target-name-side');
 const targetStatus = document.getElementById('target-status');
 const sideStatus = document.getElementById('side-status');
 
-// Sunucu uykudan uyanıp yedek istediğinde tarayıcı hafızasındaki bilgileri gönder
+// Mobil ve Genel Kontrol Butonları
+const chatItem = document.querySelector('.chat-item');
+const backToListBtn = document.getElementById('back-to-list-btn');
+const fullscreenToggleBtn = document.getElementById('fullscreen-toggle-btn');
+
+// Sunucu uykudan uyandığında tarayıcı hafızasından yedek verileri fırlatır
 socket.on('request_last_seen_backup', () => {
     const localBackup = {
         biyoloji: localStorage.getItem('lastSeen_biyoloji'),
@@ -28,13 +33,26 @@ socket.on('request_last_seen_backup', () => {
     socket.emit('provide_last_seen_backup', localBackup);
 });
 
-// Giriş Butonu Tetikleyici
+// Otomatik Tam Ekran Başlatıcı Fonksiyonu (Google Bar Temizleyici)
+function activateFullscreen() {
+    const docEl = document.documentElement;
+    if (docEl.requestFullscreen) {
+        docEl.requestFullscreen().catch(err => console.log("Tam ekran başlatılamadı:", err));
+    } else if (docEl.mozRequestFullScreen) { // Firefox
+        docEl.mozRequestFullScreen();
+    } else if (docEl.webkitRequestFullscreen) { // Chrome, Safari ve Opera
+        docEl.webkitRequestFullscreen();
+    } else if (docEl.msRequestFullscreen) { // IE/Edge
+        docEl.msRequestFullscreen();
+    }
+}
+
+// Kimlik Doğrulama İstek Gönderimi
 loginBtn.addEventListener('click', () => {
     const pass = passwordInput.value.trim();
     if (pass) socket.emit('auth', pass);
 });
 
-// Şifre ile enter tuşuna basarak da girilebilsin
 passwordInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         const pass = passwordInput.value.trim();
@@ -42,20 +60,22 @@ passwordInput.addEventListener('keypress', (e) => {
     }
 });
 
-// Kimlik Doğrulama Başarılı Olduğunda
+// Giriş Başarılı Olduğunda
 socket.on('auth_success', (data) => {
     myUsername = data.username;
     partnerUsername = myUsername === "Biyolojinin Son Kalesi" ? "Mat Dehası" : "Biyolojinin Son Kalesi";
     
-    // Ekran geçişleri
+    // Mobil tarayıcı barlarını uçurmak için tam ekranı tetikle
+    activateFullscreen();
+
+    // Arayüz geçişleri
     loginScreen.classList.add('hidden');
     appContainer.classList.remove('hidden');
     
-    // İsimleri bas
     targetNameTop.innerText = partnerUsername;
     targetNameSide.innerText = partnerUsername;
     
-    // Girişte sunucudan gelen son durum listesini tara, yedekle ve ekrana yaz
+    // Sunucudan gelen ilk verileri lokal hafızaya yedekle ve UI güncelle
     if (data.statusList) {
         const biyoData = data.statusList["Biyolojinin Son Kalesi"];
         const matData = data.statusList["Mat Dehası"];
@@ -71,12 +91,11 @@ socket.on('auth_success', (data) => {
     }
 });
 
-// Kimlik Doğrulama Başarısız Olduğunda
 socket.on('auth_fail', (msg) => { 
-    alert(msg); // Şık bir WhatsApp uyarısı yerine direkt alert bastık, hata mesajı alanını korumuş olduk
+    alert(msg); 
 });
 
-// Mesaj Gönderme Tetikleyicileri
+// Mesaj Gönderme Motoru
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
@@ -88,13 +107,12 @@ function sendMessage() {
     }
 }
 
-// Mesaj Geldiğinde (WhatsApp Koyu Tema Yapısına Göre Düzenlendi)
+// Mesaj Alındığında Akış Yönetimi
 socket.on('chat_message', (data) => {
     const messageEl = document.createElement('div');
-    messageEl.setAttribute('data-id', data.id); // Çift mavi tik eşleşmesi için ID
+    messageEl.setAttribute('data-id', data.id);
     
     if (data.sender === myUsername) {
-        // Benim Mesajım (Sağa Yaslı - Koyu Yeşil Balon)
         messageEl.className = 'message sent';
         messageEl.innerHTML = `
             ${data.text}
@@ -103,38 +121,35 @@ socket.on('chat_message', (data) => {
             </span>
         `;
     } else {
-        // Karşı Tarafın Mesajı (Sola Yaslı - Koyu Gri Balon)
         messageEl.className = 'message received';
         messageEl.innerHTML = `
             ${data.text}
             <span class="time">${data.time}</span>
         `;
-        
-        // Okundu sinyalini sunucuya fırlat
         socket.emit('message_read', { msgId: data.id });
     }
     
     chatMessages.appendChild(messageEl);
-    chatMessages.scrollTop = chatMessages.scrollHeight; // Otomatik aşağı kaydır
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-// Karşı Taraf Mesajı Okuduğunda (Çift Mavi Tik Yapma)
+// Çift Mavi Tik Doğrulaması
 socket.on('message_read_confirm', (data) => {
     const targetTick = document.querySelector(`[data-id="${data.msgId}"] .status-tick`);
     if (targetTick) {
         targetTick.innerText = "✓✓";
-        targetTick.style.color = "#53bdeb"; // WhatsApp Canlı Mavi Tik Rengi
+        targetTick.style.color = "#53bdeb";
     }
 });
 
-// Karşı Tarafın Durumu Değiştiğinde (Anlık Tetiklenme)
+// Anlık Durum Değişiklikleri
 socket.on('status_change', (data) => {
     if (data.user === partnerUsername) {
         updateStatusUI(data.status);
     }
 });
 
-// Sunucunun toplu uyanma güncellemelerini yakalama ve hafızaya alma
+// Sunucu Uyanma Senkronizasyonu
 socket.on('status_update', (data) => {
     if (data.biyolojiStatus) localStorage.setItem('lastSeen_biyoloji', data.biyolojiStatus);
     if (data.matStatus) localStorage.setItem('lastSeen_mat', data.matStatus);
@@ -146,7 +161,7 @@ socket.on('status_update', (data) => {
     }
 });
 
-// Durum Verisini UI İşleyicisine Hazırlayan Yardımcı Fonksiyon
+// UI Durum Yardımcı Fonksiyonu
 function updateStatusUI(statusObj) {
     if (!statusObj) return;
 
@@ -160,7 +175,6 @@ function updateStatusUI(statusObj) {
             savedLastSeen = localStorage.getItem('lastSeen_biyoloji') || (statusObj.lastSeen !== "Bilinmiyor" ? statusObj.lastSeen : "Bilinmiyor");
         }
 
-        // Eğer ham zaman formatı geldiyse başına "Bugün " ekle, zaten ekliyse bozma
         if (savedLastSeen !== "Bilinmiyor" && !savedLastSeen.includes("Son görülme") && !savedLastSeen.includes("Bugün")) {
             savedLastSeen = `Son görülme Bugün ${savedLastSeen}`;
         } else if (savedLastSeen !== "Bilinmiyor" && !savedLastSeen.includes("Son görülme")) {
@@ -171,12 +185,9 @@ function updateStatusUI(statusObj) {
     }
 }
 
-// Hem üst barı hem de sol taraftaki mini listeyi güncelleyen fonksiyon
 function renderStatusTexts(text) {
     targetStatus.innerText = text;
     sideStatus.innerText = text;
-    
-    // Çevrimiçi ise yeşil tonu yap, değilse WhatsApp gri tonu yap
     if (text === "çevrimiçi") {
         targetStatus.style.color = "#00a884";
         sideStatus.style.color = "#00a884";
@@ -185,3 +196,21 @@ function renderStatusTexts(text) {
         sideStatus.style.color = "#8696a0";
     }
 }
+
+// Mobil Panel Geçiş Tetikleyicileri
+chatItem.addEventListener('click', () => {
+    appContainer.classList.add('chat-active');
+});
+
+backToListBtn.addEventListener('click', () => {
+    appContainer.classList.remove('chat-active');
+});
+
+// Manuel Tam Ekran Buton Kontrolü (Üst barda yer alan ikon)
+fullscreenToggleBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+        activateFullscreen();
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+    }
+});
