@@ -41,47 +41,34 @@ function activateFullscreen() {
     }
 }
 
-// Kusursuz Mobil Klavye & Kadraj Sabitleme Motoru V3
+// Yeni Nesil Esnek Grid Klavye Koruma Motoru
 if (window.visualViewport) {
     const sulaKlavyeAyari = () => {
         const currentViewportHeight = window.visualViewport.height;
-        const totalWindowHeight = window.innerHeight;
         
-        if (currentViewportHeight < totalWindowHeight - 60) {
-            // Klavye açıkken container boyutlarını viewport'a kelepçele
-            appContainer.style.height = `${currentViewportHeight}px`;
-            document.body.style.height = `${currentViewportHeight}px`;
-            
-            const mainChatEl = document.querySelector('.main-chat');
-            mainChatEl.style.height = `${currentViewportHeight}px`;
-            
-            // Tarayıcının kendi ürettiği hatalı kaydırmayı (scroll) sıfırla
+        // Ekran ve kapsayıcı yüksekliğini anlık olarak klavye sınırına kenetle
+        document.body.style.height = `${currentViewportHeight}px`;
+        appContainer.style.height = `${currentViewportHeight}px`;
+        
+        // Tarayıcının native scroll yapmasını tamamen engelle
+        window.scrollTo(0, 0);
+        
+        setTimeout(() => {
             window.scrollTo(0, 0);
-            
-            // Mesaj kutusunu ve son mesajları görünür alana zorla
-            setTimeout(() => {
-                window.scrollTo(0, 0);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }, 40);
-        } else {
-            // Klavye kapandığında orijinal boyutlara dön
-            appContainer.style.height = '100dvh';
-            document.body.style.height = '100dvh';
-            const mainChatEl = document.querySelector('.main-chat');
-            mainChatEl.style.height = '100%';
-        }
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }, 20);
     };
 
     window.visualViewport.addEventListener('resize', sulaKlavyeAyari);
     window.visualViewport.addEventListener('scroll', sulaKlavyeAyari);
 }
 
-// Giriş alanına odaklanıldığında tarayıcı sapmalarını sıfırla
+// Odaklanma esnasında tarayıcı kaydırma bug'ını nötrleme
 messageInput.addEventListener('focus', () => {
     setTimeout(() => {
         window.scrollTo(0, 0);
         chatMessages.scrollTop = chatMessages.scrollHeight;
-    }, 100);
+    }, 50);
 });
 
 // Dinamik Textarea Yükseklik ve Yazıyor... Motoru
@@ -118,7 +105,6 @@ messageInput.addEventListener('input', function() {
     }, 1800);
 });
 
-// Shift+Enter alt satır, Sadece Enter mesajı gönderir ve klavyeyi açık tutar
 messageInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -157,14 +143,14 @@ socket.on('auth_success', (data) => {
 
 socket.on('auth_fail', (msg) => { alert(msg); });
 
-// Gönder butonuna basıldığında klavyenin kapanmasını engellemek için 'mousedown/touchstart' önlemi
+// Gönder butonuna basıldığında klavyenin kapanmasını engellemek için focus kilidi
 sendBtn.addEventListener('mousedown', (e) => {
-    e.preventDefault(); // Butonun focus çalmasını ve klavyeyi kapatmasını engeller
+    e.preventDefault();
     sendMessage();
 });
 
 sendBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // Mobil cihazlar için tıklama odağını korur
+    e.preventDefault();
     sendMessage();
 });
 
@@ -180,15 +166,14 @@ function sendMessage() {
         messageInput.value = '';
         messageInput.style.height = '38px';
         
-        // Klavyeyi her şartta açık tutmak ve odağı kaybetmemek için zorla focusla
+        // Klavyeyi açık tutmak için odağı asla bırakma
         messageInput.focus();
         
-        // Mesaj gittikten sonra akışı en alta kaydır
         setTimeout(() => {
             chatMessages.scrollTop = chatMessages.scrollHeight;
-        }, 20);
+            window.scrollTo(0, 0);
+        }, 10);
     } else {
-        // Boş mesaj basıldıysa bile odağı geri ver
         messageInput.focus();
     }
 }

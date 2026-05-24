@@ -27,7 +27,7 @@ html {
     overflow: hidden;
 }
 
-/* Şifre Giriş Ekranı Tasarımı */
+/* Şifre Giriş Ekranı */
 .auth-container {
     display: flex;
     justify-content: center;
@@ -82,7 +82,7 @@ html {
     font-weight: bold;
 }
 
-/* Uygulama Ana Ekran Düzeni */
+/* Uygulama Layout */
 .app-layout {
     display: flex;
     width: 100%;
@@ -115,6 +115,7 @@ html {
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
+    flex-shrink: 0;
 }
 
 .user-avatar {
@@ -138,6 +139,7 @@ html {
     padding: 8px 12px;
     background-color: #111b21;
     border-bottom: 1px solid #222e35;
+    flex-shrink: 0;
 }
 
 .search-bar input {
@@ -199,16 +201,16 @@ html {
     color: #8696a0;
 }
 
-/* Sağ Panel */
+/* Kökten Çözüm: Sağ Panel Esnek Dizilim */
 .main-chat {
     flex: 1;
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* İçindekiler alt alta dizilir */
     background-color: #0b141a;
     background-image: linear-gradient(rgba(11, 20, 26, 0.96), rgba(11, 20, 26, 0.96)), url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
     background-repeat: repeat;
     height: 100%;
-    position: relative;
+    overflow: hidden; /* Dışa taşma ve kayma tamamen engellendi */
 }
 
 .chat-header {
@@ -218,11 +220,7 @@ html {
     display: flex;
     align-items: center;
     border-left: 1px solid #222e35;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 500;
+    flex-shrink: 0; /* Boyutu asla küçülmez */
 }
 
 .chat-header-info {
@@ -241,32 +239,28 @@ html {
     color: #8696a0;
 }
 
-/* Yenilenen Kusursuz Mesaj Alanı Akışı */
+/* Mesaj Alanı */
 .message-area {
-    flex: 1;
+    flex: 1; /* Header ve footer dışındaki tüm alanı kaplar */
     overflow-y: auto;
-    padding: 75px 5% 75px 5%;
+    padding: 20px 5%;
     display: flex;
     flex-direction: column;
     gap: 4px;
     width: 100%;
 }
 
-/* Balonların kompakt ve kelime kırılmasına tam uyumlu yeni stili */
 .message {
     max-width: 75%;
-    width: fit-content; /* İçerik kadar küçülsün, devasa büyümesin */
+    width: fit-content;
     padding: 6px 10px 6px 10px;
     border-radius: 8px;
     font-size: 14.2px;
     position: relative;
     color: #e9edef;
-    
-    /* Kelime bölünme ve eşit dağılım motoru */
     word-break: break-word;
     overflow-wrap: anywhere;
     white-space: pre-wrap; 
-    
     display: flex;
     flex-direction: column;
 }
@@ -291,7 +285,7 @@ html {
     margin-left: 12px;
 }
 
-/* Alt İletişim Çubuğu */
+/* Kusursuz Alt İletişim Çubuğu */
 .chat-footer {
     min-height: 62px;
     max-height: 150px;
@@ -302,10 +296,8 @@ html {
     padding: 10px 16px;
     gap: 12px;
     width: 100%;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    z-index: 500;
+    flex-shrink: 0; /* Klavye sıkıştırdığında boyutu bozulmaz */
+    border-left: 1px solid #222e35;
 }
 
 .footer-actions {
