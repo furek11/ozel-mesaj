@@ -33,18 +33,35 @@ socket.on('request_last_seen_backup', () => {
     socket.emit('provide_last_seen_backup', localBackup);
 });
 
-// Otomatik Tam Ekran Başlatıcı Fonksiyonu (Google Bar Temizleyici)
+// Otomatik Tam Ekran Başlatıcı
 function activateFullscreen() {
     const docEl = document.documentElement;
     if (docEl.requestFullscreen) {
         docEl.requestFullscreen().catch(err => console.log("Tam ekran başlatılamadı:", err));
-    } else if (docEl.mozRequestFullScreen) { // Firefox
+    } else if (docEl.mozRequestFullScreen) {
         docEl.mozRequestFullScreen();
-    } else if (docEl.webkitRequestFullscreen) { // Chrome, Safari ve Opera
+    } else if (docEl.webkitRequestFullscreen) {
         docEl.webkitRequestFullscreen();
-    } else if (docEl.msRequestFullscreen) { // IE/Edge
+    } else if (docEl.msRequestFullscreen) {
         docEl.msRequestFullscreen();
     }
+}
+
+// Mobil Klavye Altında Kalma Çözümü (VisualViewport Motoru)
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+        const keyboardHeight = window.innerHeight - window.visualViewport.height;
+        if (keyboardHeight > 100) {
+            // Klavye açıldığında tüm layout'u tam viewport boyuna sabitle
+            appContainer.style.height = `${window.visualViewport.height}px`;
+            document.body.style.height = `${window.visualViewport.height}px`;
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Mesajları kaydır
+        } else {
+            // Klavye kapandığında normale dön
+            appContainer.style.height = '100dvh';
+            document.body.style.height = '100dvh';
+        }
+    });
 }
 
 // Kimlik Doğrulama İstek Gönderimi
@@ -65,7 +82,7 @@ socket.on('auth_success', (data) => {
     myUsername = data.username;
     partnerUsername = myUsername === "Biyolojinin Son Kalesi" ? "Mat Dehası" : "Biyolojinin Son Kalesi";
     
-    // Mobil tarayıcı barlarını uçurmak için tam ekranı tetikle
+    // Mobil üst barları gizle
     activateFullscreen();
 
     // Arayüz geçişleri
@@ -75,18 +92,8 @@ socket.on('auth_success', (data) => {
     targetNameTop.innerText = partnerUsername;
     targetNameSide.innerText = partnerUsername;
     
-    // Sunucudan gelen ilk verileri lokal hafızaya yedekle ve UI güncelle
+    // Sunucudan gelen ham listeye göre ilk arayüz kurulumu
     if (data.statusList) {
-        const biyoData = data.statusList["Biyolojinin Son Kalesi"];
-        const matData = data.statusList["Mat Dehası"];
-
-        if (biyoData && biyoData.lastSeen !== "Bilinmiyor") {
-            localStorage.setItem('lastSeen_biyoloji', biyoData.lastSeen.includes("Bugün") ? biyoData.lastSeen : `Son görülme ${biyoData.lastSeen}`);
-        }
-        if (matData && matData.lastSeen !== "Bilinmiyor") {
-            localStorage.setItem('lastSeen_mat', matData.lastSeen.includes("Bugün") ? matData.lastSeen : `Son görülme ${matData.lastSeen}`);
-        }
-
         updateStatusUI(data.statusList[partnerUsername]);
     }
 });
@@ -107,7 +114,7 @@ function sendMessage() {
     }
 }
 
-// Mesaj Alındığında Akış Yönetimi
+// Mesaj Alındığında
 socket.on('chat_message', (data) => {
     const messageEl = document.createElement('div');
     messageEl.setAttribute('data-id', data.id);
@@ -142,46 +149,56 @@ socket.on('message_read_confirm', (data) => {
     }
 });
 
-// Anlık Durum Değişiklikleri
-socket.on('status_change', (data) => {
-    if (data.user === partnerUsername) {
-        updateStatusUI(data.status);
-    }
-});
-
-// Sunucu Uyanma Senkronizasyonu
+// Sunucudan Gelen Merkezi Durum Yönetim İstasyonu (Kökten Çözüm)
 socket.on('status_update', (data) => {
-    if (data.biyolojiStatus) localStorage.setItem('lastSeen_biyoloji', data.biyolojiStatus);
-    if (data.matStatus) localStorage.setItem('lastSeen_mat', data.matStatus);
+    let partnerOnline = false;
+    let partnerLastSeen = "Bilinmiyor";
 
-    if (partnerUsername === "Mat Dehası" && data.matStatus) {
-        renderStatusTexts(data.matStatus);
-    } else if (partnerUsername === "Biyolojinin Son Kalesi" && data.biyolojiStatus) {
-        renderStatusTexts(data.biyolojiStatus);
+    // Giriş yapan kişiye göre karşı tarafın bilgilerini ayıkla
+    if (partnerUsername === "Mat Dehası") {
+        partnerOnline = data.matOnline;
+        partnerLastSeen = data.matLastSeen;
+        if (partnerLastSeen !== "Bilinmiyor") localStorage.setItem('lastSeen_mat', partnerLastSeen);
+    } else {
+        partnerOnline = data.biyolojiOnline;
+        partnerLastSeen = data.biyolojiLastSeen;
+        if (partnerLastSeen !== "Bilinmiyor") localStorage.setItem('lastSeen_biyoloji', partnerLastSeen);
     }
-});
 
-// UI Durum Yardımcı Fonksiyonu
-function updateStatusUI(statusObj) {
-    if (!statusObj) return;
-
-    if (statusObj.online) {
+    // Ekrana basma mantığı
+    if (partnerOnline) {
         renderStatusTexts("çevrimiçi");
     } else {
-        let savedLastSeen = "Bilinmiyor";
-        if (partnerUsername === "Mat Dehası") {
-            savedLastSeen = localStorage.getItem('lastSeen_mat') || (statusObj.lastSeen !== "Bilinmiyor" ? statusObj.lastSeen : "Bilinmiyor");
-        } else {
-            savedLastSeen = localStorage.getItem('lastSeen_biyoloji') || (statusObj.lastSeen !== "Bilinmiyor" ? statusObj.lastSeen : "Bilinmiyor");
+        // Eğer sunucu uykudan yeni uyandıysa tarayıcı hafızasındaki yedeği çek
+        if (partnerLastSeen === "Bilinmiyor") {
+            partnerLastSeen = (partnerUsername === "Mat Dehası") ? 
+                (localStorage.getItem('lastSeen_mat') || "Bilinmiyor") : 
+                (localStorage.getItem('lastSeen_biyoloji') || "Bilinmiyor");
         }
 
-        if (savedLastSeen !== "Bilinmiyor" && !savedLastSeen.includes("Son görülme") && !savedLastSeen.includes("Bugün")) {
-            savedLastSeen = `Son görülme Bugün ${savedLastSeen}`;
-        } else if (savedLastSeen !== "Bilinmiyor" && !savedLastSeen.includes("Son görülme")) {
-            savedLastSeen = `Son görülme ${savedLastSeen}`;
+        if (partnerLastSeen !== "Bilinmiyor" && !partnerLastSeen.includes("Son görülme")) {
+            partnerLastSeen = `Son görülme ${partnerLastSeen}`;
         }
+        renderStatusTexts(partnerLastSeen);
+    }
+});
 
-        renderStatusTexts(savedLastSeen);
+// İlk girişteki UI güncellemesi
+function updateStatusUI(partnerStatusObj) {
+    if (!partnerStatusObj) return;
+    if (partnerStatusObj.online) {
+        renderStatusTexts("çevrimiçi");
+    } else {
+        let text = partnerStatusObj.lastSeen;
+        if (text === "Bilinmiyor") {
+            text = (partnerUsername === "Mat Dehası") ? 
+                (localStorage.getItem('lastSeen_mat') || "Bilinmiyor") : 
+                (localStorage.getItem('lastSeen_biyoloji') || "Bilinmiyor");
+        }
+        if (text !== "Bilinmiyor" && !text.includes("Son görülme")) {
+            text = `Son görülme ${text}`;
+        }
+        renderStatusTexts(text);
     }
 }
 
@@ -197,16 +214,16 @@ function renderStatusTexts(text) {
     }
 }
 
-// Mobil Panel Geçiş Tetikleyicileri
+// Mobil Panel Geçişleri
 chatItem.addEventListener('click', () => {
     appContainer.classList.add('chat-active');
+    setTimeout(() => { chatMessages.scrollTop = chatMessages.scrollHeight; }, 100);
 });
 
 backToListBtn.addEventListener('click', () => {
     appContainer.classList.remove('chat-active');
 });
 
-// Manuel Tam Ekran Buton Kontrolü (Üst barda yer alan ikon)
 fullscreenToggleBtn.addEventListener('click', () => {
     if (!document.fullscreenElement) {
         activateFullscreen();

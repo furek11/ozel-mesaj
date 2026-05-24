@@ -10,7 +10,7 @@ body {
     background-color: #0b141a;
     color: #e9edef;
     height: 100vh;
-    height: -webkit-fill-available; /* Mobil Safari için tam boy uyumu */
+    height: 100dvh; /* Dinamik mobil yüksekliği */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -19,7 +19,9 @@ body {
 }
 
 html {
-    height: -webkit-fill-available;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
 }
 
 /* Şifre Giriş Ekranı Tasarımı */
@@ -29,6 +31,7 @@ html {
     align-items: center;
     width: 100%;
     height: 100vh;
+    height: 100dvh;
     background-color: #0b141a;
     position: absolute;
     z-index: 1000;
@@ -83,6 +86,7 @@ html {
     display: flex;
     width: 100%;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     background-color: #111b21;
 }
@@ -293,6 +297,7 @@ html {
     align-items: center;
     padding: 5px 16px;
     gap: 12px;
+    padding-bottom: cubic-bezier(0.1, 0.7, 0.1, 1); /* Safe area padding support */
 }
 
 .footer-actions {
@@ -346,32 +351,30 @@ html {
     .app-layout {
         flex-direction: column;
         position: relative;
+        height: 100dvh;
     }
 
     .side-panel, .main-chat {
         width: 100% !important;
         max-width: none !important;
         min-width: 0 !important;
-        height: 100vh;
+        height: 100dvh;
         position: absolute;
         top: 0;
         left: 0;
         transition: transform 0.25s ease-in-out;
     }
 
-    /* Girişte sadece sol panel (liste) aktif */
     .side-panel {
         z-index: 2;
         transform: translateX(0);
     }
 
-    /* Sağ panel (mesajlaşma) sağda bekliyor */
     .main-chat {
         z-index: 1;
         transform: translateX(100%);
     }
 
-    /* Sohbet tıklandığında sol paneli uçur, sağ paneli getir */
     .app-layout.chat-active .side-panel {
         transform: translateX(-100%);
     }
@@ -381,7 +384,6 @@ html {
         transform: translateX(0);
     }
 
-    /* Geri oku butonu mobilde aktif */
     .back-btn {
         display: inline-block !important;
         background: none;
@@ -394,6 +396,6 @@ html {
     }
     
     .message {
-        max-width: 85%; /* Mobilde mesaj balonları biraz daha geniş yer kaplayabilir */
+        max-width: 85%;
     }
 }
