@@ -3,7 +3,7 @@ const socket = io();
 let myUsername = "";
 let partnerUsername = "";
 let typingTimeout = null;
-let isCurrentlyTyping = false; // Döngüsel soket kilitlenmelerini önleyen bayrak
+let isCurrentlyTyping = false;
 
 // DOM Elementleri
 const loginScreen = document.getElementById('login-screen');
@@ -41,31 +41,50 @@ function activateFullscreen() {
     }
 }
 
+// Kusursuz Mobil Klavye & Kadraj Sabitleme Motoru V3
 if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
+    const sulaKlavyeAyari = () => {
         const currentViewportHeight = window.visualViewport.height;
         const totalWindowHeight = window.innerHeight;
         
         if (currentViewportHeight < totalWindowHeight - 60) {
+            // Klavye açıkken container boyutlarını viewport'a kelepçele
             appContainer.style.height = `${currentViewportHeight}px`;
             document.body.style.height = `${currentViewportHeight}px`;
             
             const mainChatEl = document.querySelector('.main-chat');
             mainChatEl.style.height = `${currentViewportHeight}px`;
             
+            // Tarayıcının kendi ürettiği hatalı kaydırmayı (scroll) sıfırla
+            window.scrollTo(0, 0);
+            
+            // Mesaj kutusunu ve son mesajları görünür alana zorla
             setTimeout(() => {
+                window.scrollTo(0, 0);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
-            }, 50);
+            }, 40);
         } else {
+            // Klavye kapandığında orijinal boyutlara dön
             appContainer.style.height = '100dvh';
             document.body.style.height = '100dvh';
             const mainChatEl = document.querySelector('.main-chat');
             mainChatEl.style.height = '100%';
         }
-    });
+    };
+
+    window.visualViewport.addEventListener('resize', sulaKlavyeAyari);
+    window.visualViewport.addEventListener('scroll', sulaKlavyeAyari);
 }
 
-// Akıllı ve Kararlı "Yazıyor..." Denetim Motoru
+// Giriş alanına odaklanıldığında tarayıcı sapmalarını sıfırla
+messageInput.addEventListener('focus', () => {
+    setTimeout(() => {
+        window.scrollTo(0, 0);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }, 100);
+});
+
+// Dinamik Textarea Yükseklik ve Yazıyor... Motoru
 messageInput.addEventListener('input', function() {
     this.style.height = '38px'; 
     const nextHeight = this.scrollHeight;
@@ -76,7 +95,6 @@ messageInput.addEventListener('input', function() {
 
     const currentText = this.value;
 
-    // Kutu tamamen boşaltıldıysa yazıyor ibaresini HİÇ BEKLEMEDEN anında kapat
     if (currentText.trim() === "") {
         clearTimeout(typingTimeout);
         if (isCurrentlyTyping) {
@@ -86,23 +104,21 @@ messageInput.addEventListener('input', function() {
         return;
     }
 
-    // Karşı tarafa sadece ilk harfte tek bir sinyal gönder (Soket trafiği şişmesin)
     if (!isCurrentlyTyping) {
         isCurrentlyTyping = true;
         socket.emit('typing_status', true);
     }
 
-    // Yazmayı bırakma takibi (Debounce)
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
         if (isCurrentlyTyping) {
             isCurrentlyTyping = false;
             socket.emit('typing_status', false);
         }
-    }, 1800); // 1.8 saniye boyunca tuşa basılmazsa kapat
+    }, 1800);
 });
 
-// Shift+Enter alt satır, Enter gönder
+// Shift+Enter alt satır, Sadece Enter mesajı gönderir ve klavyeyi açık tutar
 messageInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -141,19 +157,39 @@ socket.on('auth_success', (data) => {
 
 socket.on('auth_fail', (msg) => { alert(msg); });
 
-sendBtn.addEventListener('click', sendMessage);
+// Gönder butonuna basıldığında klavyenin kapanmasını engellemek için 'mousedown/touchstart' önlemi
+sendBtn.addEventListener('mousedown', (e) => {
+    e.preventDefault(); // Butonun focus çalmasını ve klavyeyi kapatmasını engeller
+    sendMessage();
+});
+
+sendBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Mobil cihazlar için tıklama odağını korur
+    sendMessage();
+});
 
 function sendMessage() {
     const text = messageInput.value.trim();
     if (text) {
         clearTimeout(typingTimeout);
         isCurrentlyTyping = false;
-        socket.emit('typing_status', false); // Mesaj gittiği an yazıyor durumunu mutlak kapat
+        socket.emit('typing_status', false);
         
         socket.emit('chat_message', text);
         
         messageInput.value = '';
         messageInput.style.height = '38px';
+        
+        // Klavyeyi her şartta açık tutmak ve odağı kaybetmemek için zorla focusla
+        messageInput.focus();
+        
+        // Mesaj gittikten sonra akışı en alta kaydır
+        setTimeout(() => {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }, 20);
+    } else {
+        // Boş mesaj basıldıysa bile odağı geri ver
+        messageInput.focus();
     }
 }
 
@@ -182,7 +218,6 @@ socket.on('message_read_confirm', (data) => {
     }
 });
 
-// Merkezi Durum İstasyonu (Anlık Güncelleme)
 socket.on('status_update', (data) => {
     let partnerOnline = false;
     let partnerLastSeen = "Bilinmiyor";
