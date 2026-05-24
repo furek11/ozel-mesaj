@@ -14,6 +14,7 @@ const loginBtn = document.getElementById('login-btn');
 const chatMessages = document.getElementById('chat-messages');
 const messageInput = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
+const chatFooter = document.querySelector('.chat-footer');
 
 const targetNameTop = document.getElementById('target-name-top');
 const targetNameSide = document.getElementById('target-name-side');
@@ -41,34 +42,45 @@ function activateFullscreen() {
     }
 }
 
-// Yeni Nesil Esnek Grid Klavye Koruma Motoru
+// Demir Yumruk: Mutlak Fixed Klavye Sabitleme ve Konumlandırma Motoru V4
 if (window.visualViewport) {
-    const sulaKlavyeAyari = () => {
-        const currentViewportHeight = window.visualViewport.height;
+    const sulaFixedKlavyeMotoru = () => {
+        const vv = window.visualViewport;
+        const totalHeight = window.innerHeight;
         
-        // Ekran ve kapsayıcı yüksekliğini anlık olarak klavye sınırına kenetle
-        document.body.style.height = `${currentViewportHeight}px`;
-        appContainer.style.height = `${currentViewportHeight}px`;
+        // Klavyenin kapladığı alanı hesapla ve footer'ı tam üzerine yapıştır
+        const bottomOffset = totalHeight - vv.height - vv.offsetTop;
         
-        // Tarayıcının native scroll yapmasını tamamen engelle
+        if (bottomOffset > 30) {
+            // Klavye açık
+            chatFooter.style.bottom = `${bottomOffset}px`;
+            // Mesaj alanının alt padding'ini footer yüksekliğine göre genişlet
+            chatMessages.style.paddingBottom = `${bottomOffset + 75}px`;
+        } else {
+            // Klavye kapalı
+            chatFooter.style.bottom = '0px';
+            chatMessages.style.paddingBottom = '80px';
+        }
+        
+        // Tarayıcının hiyerarşiyi bozmaya yönelik istemsiz scroll hareketlerini engelle
         window.scrollTo(0, 0);
         
         setTimeout(() => {
             window.scrollTo(0, 0);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-        }, 20);
+        }, 15);
     };
 
-    window.visualViewport.addEventListener('resize', sulaKlavyeAyari);
-    window.visualViewport.addEventListener('scroll', sulaKlavyeAyari);
+    window.visualViewport.addEventListener('resize', sulaFixedKlavyeMotoru);
+    window.visualViewport.addEventListener('scroll', sulaFixedKlavyeMotoru);
 }
 
-// Odaklanma esnasında tarayıcı kaydırma bug'ını nötrleme
+// Odaklanma esnasında kadrajı kitleme
 messageInput.addEventListener('focus', () => {
     setTimeout(() => {
         window.scrollTo(0, 0);
         chatMessages.scrollTop = chatMessages.scrollHeight;
-    }, 50);
+    }, 40);
 });
 
 // Dinamik Textarea Yükseklik ve Yazıyor... Motoru
@@ -143,7 +155,7 @@ socket.on('auth_success', (data) => {
 
 socket.on('auth_fail', (msg) => { alert(msg); });
 
-// Gönder butonuna basıldığında klavyenin kapanmasını engellemek için focus kilidi
+// Gönder butonuna basıldığında klavyenin kapanmasını önleyen engelleme sistemi
 sendBtn.addEventListener('mousedown', (e) => {
     e.preventDefault();
     sendMessage();
@@ -166,7 +178,7 @@ function sendMessage() {
         messageInput.value = '';
         messageInput.style.height = '38px';
         
-        // Klavyeyi açık tutmak için odağı asla bırakma
+        // Klavyeyi daima açık tut
         messageInput.focus();
         
         setTimeout(() => {
