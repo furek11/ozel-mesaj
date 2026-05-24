@@ -3,30 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Özel Sohbet</title>
+    <title>Özel Güvenli Mesajlaşma</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="login-container" class="card">
-        <h2>Güvenli Giriş</h2>
-        <p>Erişim sağlamak için şifrenizi girin.</p>
-        <input type="password" id="password-input" placeholder="Şifreniz">
-        <button id="login-btn">Giriş Yap</button>
-        <p id="error-msg" class="error"></p>
+
+    <div id="login-screen" class="auth-container">
+        <div class="auth-card">
+            <h2>Güvenli Giriş</h2>
+            <input type="password" id="password-input" placeholder="Erişim Şifresi" />
+            <button id="login-btn">Giriş Yap</button>
+        </div>
     </div>
 
-    <div id="chat-container" class="hidden">
-        <div id="chat-header">
-            <div class="user-info">
-                <span id="chat-partner-name">Sohbet Odası</span>
-                <span id="chat-partner-status">Yükleniyor...</span>
+    <div id="app-container" class="app-layout hidden">
+        
+        <aside class="side-panel">
+            <header class="side-header">
+                <div class="user-avatar" id="my-avatar">👤</div>
+                <div class="side-actions">
+                    <span class="action-icon">💬</span>
+                    <span class="action-icon">⋮</span>
+                </div>
+            </header>
+            
+            <div class="search-bar-container">
+                <div class="search-bar">
+                    <input type="text" placeholder="Aratın veya yeni sohbet başlayın" disabled>
+                </div>
             </div>
-        </div>
-        <div id="messages-box"></div>
-        <div id="input-area">
-            <input type="text" id="message-input" placeholder="Mesajınızı yazın...">
-            <button id="send-btn">Gönder</button>
-        </div>
+            
+            <div class="chats-list">
+                <div class="chat-item active">
+                    <div class="chat-avatar">👤</div>
+                    <div class="chat-info">
+                        <div class="chat-main-row">
+                            <h3 id="target-name-side">Sohbet Edilen Kişi</h3>
+                        </div>
+                        <p class="chat-sub-text" id="side-status">çevrimdışı</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-chat">
+            <header class="chat-header">
+                <div class="chat-header-info">
+                    <div class="chat-avatar">👤</div>
+                    <div class="chat-user-details">
+                        <h3 id="target-name-top">Yükleniyor...</h3>
+                        <span id="target-status" class="status-text">bağlanıyor...</span>
+                    </div>
+                </div>
+            </header>
+
+            <div id="chat-messages" class="message-area">
+                </div>
+
+            <footer class="chat-footer">
+                <div class="footer-actions">
+                    <button type="button" id="emoji-dummy-btn">😀</button>
+                    <button type="button" id="attach-dummy-btn">📎</button>
+                </div>
+                <input type="text" id="message-input" placeholder="Bir mesaj yazın" autocomplete="off" />
+                <button type="button" id="send-btn">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="currentColor" d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"></path>
+                    </svg>
+                </button>
+            </footer>
+        </main>
+
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
