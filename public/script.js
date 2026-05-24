@@ -41,28 +41,26 @@ function activateFullscreen() {
     }
 }
 
-// Geliştirilmiş Mobil Klavye Sabitleyici (Z-Index ve Kadraj Koruma Motoru)
+// Geliştirilmiş Mobil Klavye & Kadraj Sabitleme Motoru
 if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', () => {
         const currentViewportHeight = window.visualViewport.height;
         const totalWindowHeight = window.innerHeight;
         
-        // Klavye açıldıysa daralmayı yakala
         if (currentViewportHeight < totalWindowHeight - 60) {
-            // Ana gövdeyi daralan viewport boyuna getir, yukarı taşmayı kilitle
+            // Klavye açıkken ekran alanını tam kilitle
             appContainer.style.height = `${currentViewportHeight}px`;
             document.body.style.height = `${currentViewportHeight}px`;
             
-            // Mesaj alanını ve footer konumunu yeniden hesapla
             const mainChatEl = document.querySelector('.main-chat');
             mainChatEl.style.height = `${currentViewportHeight}px`;
             
-            // Mesajları en alta kaydır
+            // Mesaj kutusunun alt padding değerini esnet ve mesajları kaydır
             setTimeout(() => {
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }, 50);
         } else {
-            // Klavye kapandığında orijinal boyutlara çek
+            // Klavye kapandığında normale dön
             appContainer.style.height = '100dvh';
             document.body.style.height = '100dvh';
             const mainChatEl = document.querySelector('.main-chat');
@@ -71,25 +69,41 @@ if (window.visualViewport) {
     });
 }
 
-// "Yazıyor..." Tetikleme Mekanizması
-messageInput.addEventListener('input', () => {
-    // Sunucuya yazıyor bilgisini gönder
+// Dinamik Textarea Yükseklik ve Yazıyor... Motoru
+messageInput.addEventListener('input', function() {
+    // 1. Kutunun boyunu satır sayısına göre otomatik genişletme/daraltma
+    this.style.height = '38px'; // Önce sıfırla
+    const nextHeight = this.scrollHeight;
+    if (nextHeight > 38) {
+        this.style.height = `${nextHeight}px`;
+    }
+    
+    // Mesaj akışını kutu büyüdükçe en alta it
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // 2. Yazıyor durum bildirimi
     socket.emit('typing_status', true);
 
-    // Eski zamanlayıcıyı temizle, kullanıcı yazmayı bırakınca tetiklenecek
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
         socket.emit('typing_status', false);
-    }, 1500); // 1.5 saniye hareketsiz kalırsa yazıyor yazısı silinir
+    }, 1500);
 });
 
-// Karşı tarafın yazma durumunu dinleme
+// Shift + Enter ile alt satıra geçme, Sadece Enter ile mesaj gönderme
+messageInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault(); // Yeni satır eklemesini engelle
+        sendMessage();
+    }
+});
+
+// Karşı tarafın yazma durumu dinleyicisi
 socket.on('user_typing', (data) => {
     if (data.user === partnerUsername) {
         if (data.typing) {
             renderStatusTexts("yazıyor...");
         } else {
-            // Yazmayı bıraktıysa sunucudan güncel durumu tekrar talep et veya durumu yenile
             socket.emit('request_last_seen_backup');
         }
     }
@@ -127,14 +141,15 @@ socket.on('auth_success', (data) => {
 socket.on('auth_fail', (msg) => { alert(msg); });
 
 sendBtn.addEventListener('click', sendMessage);
-messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
 function sendMessage() {
     const text = messageInput.value.trim();
     if (text) {
-        socket.emit('typing_status', false); // Mesaj gittiği an yazıyor durumunu kapat
+        socket.emit('typing_status', false);
         socket.emit('chat_message', text);
+        
         messageInput.value = '';
+        messageInput.style.height = '38px'; // Kutu boyunu orijinal haline sıfırla
     }
 }
 
@@ -171,7 +186,6 @@ socket.on('message_read_confirm', (data) => {
     }
 });
 
-// Merkezi Durum Dinleyicisi
 socket.on('status_update', (data) => {
     let partnerOnline = false;
     let partnerLastSeen = "Bilinmiyor";
@@ -189,7 +203,6 @@ socket.on('status_update', (data) => {
         if (partnerLastSeen !== "Bilinmiyor") localStorage.setItem('lastSeen_biyoloji', partnerLastSeen);
     }
 
-    // Öncelik Sıralaması: 1. Yazıyor, 2. Çevrimiçi, 3. Son Görülme
     if (partnerTyping) {
         renderStatusTexts("yazıyor...");
     } else if (partnerOnline) {

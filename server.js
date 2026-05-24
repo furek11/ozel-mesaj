@@ -59,11 +59,9 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Yazıyor... Durum Bildirimi
     socket.on('typing_status', (isTyping) => {
         if (currentUser) {
             userStatus[currentUser].typing = isTyping;
-            // Sadece diğer kullanıcıya yayınla (Gecikmeyi önlemek için broadcast)
             socket.broadcast.emit('user_typing', { user: currentUser, typing: isTyping });
         }
     });
@@ -73,7 +71,6 @@ io.on('connection', (socket) => {
             const now = new Date();
             const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
             
-            // Mesaj gönderildiğinde yazıyor durumunu kapat
             userStatus[currentUser].typing = false;
             
             const messageData = {

@@ -15,7 +15,7 @@
         <div class="auth-card">
             <h2>Güvenli Giriş</h2>
             <p style="font-size: 11px; color: #8696a0; margin-bottom: 15px;">En iyi mobil deneyim için giriş yaptıktan sonra tam ekrana geçilecektir.</p>
-            <input type="password" id="password-input" placeholder="Erişim Şifresi" />
+            <input type="text" id="password-input" placeholder="Erişim Şifresi" autocomplete="off" name="x_dummy_field_no_save" />
             <button id="login-btn">Giriş Yap</button>
         </div>
     </div>
@@ -85,15 +85,17 @@
                     <button type="button" id="emoji-dummy-btn">😀</button>
                     <button type="button" id="attach-dummy-btn">📎</button>
                 </div>
-                <input type="text" id="message-input" placeholder="Bir mesaj yazın" 
-                       autocomplete="new-password" 
-                       autocorrect="off" 
-                       autocapitalize="sentences" 
-                       spellcheck="false" 
-                       data-lpignore="true" 
-                       data-form-type="other" 
-                       role="presentation"
-                       name="random_msg_field_" />
+                
+                <textarea id="message-input" placeholder="Bir mesaj yazın" rows="1"
+                          autocomplete="off"
+                          autocorrect="off"
+                          autocapitalize="sentences"
+                          spellcheck="false"
+                          data-form-type="other"
+                          data-lpignore="true"
+                          name="not_a_secure_or_card_field_just_a_random_unstructured_paragraph_box"
+                          style="resize: none;"></textarea>
+                          
                 <button type="button" id="send-btn">
                     <svg viewBox="0 0 24 24" width="24" height="24">
                         <path fill="currentColor" d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"></path>
