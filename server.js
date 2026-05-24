@@ -12,7 +12,6 @@ const SIFRE_BIYOLOJI = process.env.SIFRE_BIYOLOJI || "biyo123";
 const SIFRE_MATEMATIK = process.env.SIFRE_MATEMATIK || "mat123";
 
 // Kullanıcı durumlarını hafızada tutuyoruz
-// lastSeen: 'çevrimiçi' veya '14:32' gibi son görülme saati
 let userStatus = {
     "Biyolojinin Son Kalesi": { online: false, lastSeen: "Bilinmiyor", socketId: null },
     "Mat Dehası": { online: false, lastSeen: "Bilinmiyor", socketId: null }
@@ -21,6 +20,22 @@ let userStatus = {
 io.on('connection', (socket) => {
     let currentUser = null;
 
+    // Sunucu uykudan yeni uyandıysa, bağlanan ilk tarayıcıdan localStorage yedeklerini talep et
+    socket.emit('request_last_seen_backup');
+
+    // Tarayıcıdan gelen yedek durum bilgisini sunucu hafızasına yaz
+    socket.on('provide_last_seen_backup', (backup) => {
+        if (backup) {
+            if (userStatus["Biyolojinin Son Kalesi"].lastSeen === "Bilinmiyor" && backup.biyoloji) {
+                userStatus["Biyolojinin Son Kalesi"].lastSeen = backup.biyoloji;
+            }
+            if (userStatus["Mat Dehası"].lastSeen === "Bilinmiyor" && backup.mat) {
+                userStatus["Mat Dehası"].lastSeen = backup.mat;
+            }
+        }
+    });
+
+    // Kullanıcı Giriş (Kimlik Doğrulama) işlemi
     socket.on('auth', (password) => {
         if (password === SIFRE_BIYOLOJI) currentUser = "Biyolojinin Son Kalesi";
         else if (password === SIFRE_MATEMATIK) currentUser = "Mat Dehası";
@@ -67,7 +82,7 @@ io.on('connection', (socket) => {
             const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
             
             userStatus[currentUser].online = false;
-            userStatus[currentUser].lastSeen = timeStr;
+            userStatus[currentUser].lastSeen = "Bugün " + timeStr;
             userStatus[currentUser].socketId = null;
 
             // Diğer kullanıcıya son görülme zamanımı yayınla
