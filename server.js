@@ -59,10 +59,11 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Hassas Yazıyor Durum Kontrolü
     socket.on('typing_status', (isTyping) => {
         if (currentUser) {
             userStatus[currentUser].typing = isTyping;
-            socket.broadcast.emit('user_typing', { user: currentUser, typing: isTyping });
+            broadcastStatuses();
         }
     });
 

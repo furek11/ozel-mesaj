@@ -3,6 +3,7 @@ const socket = io();
 let myUsername = "";
 let partnerUsername = "";
 let typingTimeout = null;
+let isCurrentlyTyping = false; // Döngüsel soket kilitlenmelerini önleyen bayrak
 
 // DOM Elementleri
 const loginScreen = document.getElementById('login-screen');
@@ -14,7 +15,6 @@ const chatMessages = document.getElementById('chat-messages');
 const messageInput = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
 
-// WhatsApp Arayüz Elementleri
 const targetNameTop = document.getElementById('target-name-top');
 const targetNameSide = document.getElementById('target-name-side');
 const targetStatus = document.getElementById('target-status');
@@ -41,26 +41,22 @@ function activateFullscreen() {
     }
 }
 
-// Geliştirilmiş Mobil Klavye & Kadraj Sabitleme Motoru
 if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', () => {
         const currentViewportHeight = window.visualViewport.height;
         const totalWindowHeight = window.innerHeight;
         
         if (currentViewportHeight < totalWindowHeight - 60) {
-            // Klavye açıkken ekran alanını tam kilitle
             appContainer.style.height = `${currentViewportHeight}px`;
             document.body.style.height = `${currentViewportHeight}px`;
             
             const mainChatEl = document.querySelector('.main-chat');
             mainChatEl.style.height = `${currentViewportHeight}px`;
             
-            // Mesaj kutusunun alt padding değerini esnet ve mesajları kaydır
             setTimeout(() => {
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }, 50);
         } else {
-            // Klavye kapandığında normale dön
             appContainer.style.height = '100dvh';
             document.body.style.height = '100dvh';
             const mainChatEl = document.querySelector('.main-chat');
@@ -69,43 +65,48 @@ if (window.visualViewport) {
     });
 }
 
-// Dinamik Textarea Yükseklik ve Yazıyor... Motoru
+// Akıllı ve Kararlı "Yazıyor..." Denetim Motoru
 messageInput.addEventListener('input', function() {
-    // 1. Kutunun boyunu satır sayısına göre otomatik genişletme/daraltma
-    this.style.height = '38px'; // Önce sıfırla
+    this.style.height = '38px'; 
     const nextHeight = this.scrollHeight;
     if (nextHeight > 38) {
         this.style.height = `${nextHeight}px`;
     }
-    
-    // Mesaj akışını kutu büyüdükçe en alta it
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // 2. Yazıyor durum bildirimi
-    socket.emit('typing_status', true);
+    const currentText = this.value;
 
+    // Kutu tamamen boşaltıldıysa yazıyor ibaresini HİÇ BEKLEMEDEN anında kapat
+    if (currentText.trim() === "") {
+        clearTimeout(typingTimeout);
+        if (isCurrentlyTyping) {
+            isCurrentlyTyping = false;
+            socket.emit('typing_status', false);
+        }
+        return;
+    }
+
+    // Karşı tarafa sadece ilk harfte tek bir sinyal gönder (Soket trafiği şişmesin)
+    if (!isCurrentlyTyping) {
+        isCurrentlyTyping = true;
+        socket.emit('typing_status', true);
+    }
+
+    // Yazmayı bırakma takibi (Debounce)
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
-        socket.emit('typing_status', false);
-    }, 1500);
+        if (isCurrentlyTyping) {
+            isCurrentlyTyping = false;
+            socket.emit('typing_status', false);
+        }
+    }, 1800); // 1.8 saniye boyunca tuşa basılmazsa kapat
 });
 
-// Shift + Enter ile alt satıra geçme, Sadece Enter ile mesaj gönderme
+// Shift+Enter alt satır, Enter gönder
 messageInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault(); // Yeni satır eklemesini engelle
+        e.preventDefault();
         sendMessage();
-    }
-});
-
-// Karşı tarafın yazma durumu dinleyicisi
-socket.on('user_typing', (data) => {
-    if (data.user === partnerUsername) {
-        if (data.typing) {
-            renderStatusTexts("yazıyor...");
-        } else {
-            socket.emit('request_last_seen_backup');
-        }
     }
 });
 
@@ -145,11 +146,14 @@ sendBtn.addEventListener('click', sendMessage);
 function sendMessage() {
     const text = messageInput.value.trim();
     if (text) {
-        socket.emit('typing_status', false);
+        clearTimeout(typingTimeout);
+        isCurrentlyTyping = false;
+        socket.emit('typing_status', false); // Mesaj gittiği an yazıyor durumunu mutlak kapat
+        
         socket.emit('chat_message', text);
         
         messageInput.value = '';
-        messageInput.style.height = '38px'; // Kutu boyunu orijinal haline sıfırla
+        messageInput.style.height = '38px';
     }
 }
 
@@ -159,18 +163,10 @@ socket.on('chat_message', (data) => {
     
     if (data.sender === myUsername) {
         messageEl.className = 'message sent';
-        messageEl.innerHTML = `
-            ${data.text}
-            <span class="time">
-                ${data.time} <span class="status-tick" style="margin-left: 3px; color: #8696a0;">✓</span>
-            </span>
-        `;
+        messageEl.innerHTML = `${data.text}<span class="time">${data.time} <span class="status-tick" style="margin-left: 3px; color: #8696a0;">✓</span></span>`;
     } else {
         messageEl.className = 'message received';
-        messageEl.innerHTML = `
-            ${data.text}
-            <span class="time">${data.time}</span>
-        `;
+        messageEl.innerHTML = `${data.text}<span class="time">${data.time}</span>`;
         socket.emit('message_read', { msgId: data.id });
     }
     
@@ -186,6 +182,7 @@ socket.on('message_read_confirm', (data) => {
     }
 });
 
+// Merkezi Durum İstasyonu (Anlık Güncelleme)
 socket.on('status_update', (data) => {
     let partnerOnline = false;
     let partnerLastSeen = "Bilinmiyor";
