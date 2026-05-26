@@ -1,117 +1,161 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
-const path = require('path');
+const nodemailer = require('nodemailer');
 
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public'));
 
-const SIFRE_BIYOLOJI = process.env.SIFRE_BIYOLOJI || "biyo123";
-const SIFRE_MATEMATIK = process.env.SIFRE_MATEMATIK || "mat123";
-
-let userStatus = {
-    "Biyolojinin Son Kalesi": { online: false, lastSeen: "Bilinmiyor", socketId: null, typing: false },
-    "Mat Dehası": { online: false, lastSeen: "Bilinmiyor", socketId: null, typing: false }
+// Kullanıcı durumlarını hafızada tutan obje
+const usersStatus = {
+    "Mat Dehası": { online: false, lastSeen: "Bilinmiyor", typing: false },
+    "Biyolojinin Son Kalesi": { online: false, lastSeen: "Bilinmiyor", typing: false }
 };
 
-function broadcastStatuses() {
-    io.emit('status_update', {
-        biyolojiOnline: userStatus["Biyolojinin Son Kalesi"].online,
-        biyolojiLastSeen: userStatus["Biyolojinin Son Kalesi"].lastSeen,
-        biyolojiTyping: userStatus["Biyolojinin Son Kalesi"].typing,
-        matOnline: userStatus["Mat Dehası"].online,
-        matLastSeen: userStatus["Mat Dehası"].lastSeen,
-        matTyping: userStatus["Mat Dehası"].typing
+// ==========================================================================
+// MAİL BİLDİRİM MOTORU (NODEMAILER YAPILANDIRMASI)
+// ==========================================================================
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
+
+// Mail Gönderme Fonksiyonu
+function sendNotificationEmail(senderName, messagePreview) {
+    const mailOptions = {
+        from: `"Güvenli Sohbet Bildirimi" <${process.env.EMAIL_USER}>`,
+        to: process.env.RECEIVER_EMAIL,
+        subject: `🔔 ${senderName} Yeni Mesaj Gönderdi!`,
+        text: `Merhaba, \n\nSohbet odasında ${senderName} size yeni bir mesaj bıraktı.\n\nMesaj Önizlemesi: ${messagePreview}\n\nOkumak için hemen uygulamaya giriş yapın.`,
+        html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; max-width: 500px;">
+                <h2 style="color: #00a884; margin-top: 0;">🔔 Yeni Mesaj Bildirimi</h2>
+                <p><strong>${senderName}</strong> size yeni bir mesaj gönderdi.</p>
+                <blockquote style="background: #f9f9f9; padding: 10px 15px; border-left: 4px solid #00a884; margin: 15px 0;">
+                    ${messagePreview}
+                </blockquote>
+                <p style="font-size: 13px; color: #8696a0;">Bu otomatik bir sistem bildirimidir. Lütfen bu maili yanıtlamayın.</p>
+               </div>`
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log('Mail gönderme hatası:', error);
+        } else {
+            console.log('Bildirim maili başarıyla gönderildi:', info.response);
+        }
     });
 }
 
+// ==========================================================================
+// SOCKET.IO SOHBET VE AKTİVİTE AKIŞI
+// ==========================================================================
 io.on('connection', (socket) => {
-    let currentUser = null;
+    let authUser = null;
 
-    socket.emit('request_last_seen_backup');
+    socket.on('auth', (password) => {
+        // Basit şifre kontrol mantığı (Projene göre burayı esnetebilirsin)
+        if (password === "mat123") {
+            authUser = "Mat Dehası";
+        } else if (password === "bio123") {
+            authUser = "Biyolojinin Son Kalesi";
+        }
 
-    socket.on('provide_last_seen_backup', (backup) => {
-        if (backup) {
-            if (!userStatus["Biyolojinin Son Kalesi"].online && userStatus["Biyolojinin Son Kalesi"].lastSeen === "Bilinmiyor" && backup.biyoloji) {
-                userStatus["Biyolojinin Son Kalesi"].lastSeen = backup.biyoloji;
-            }
-            if (!userStatus["Mat Dehası"].online && userStatus["Mat Dehası"].lastSeen === "Bilinmiyor" && backup.mat) {
-                userStatus["Mat Dehası"].lastSeen = backup.mat;
-            }
-            broadcastStatuses();
+        if (authUser) {
+            socket.join('chat-room');
+            usersStatus[authUser].online = true;
+            usersStatus[authUser].typing = false;
+            
+            socket.emit('auth_success', { username: authUser, statusList: usersStatus });
+            io.to('chat-room').emit('status_update', {
+                matOnline: usersStatus["Mat Dehası"].online,
+                matLastSeen: usersStatus["Mat Dehası"].lastSeen,
+                matTyping: usersStatus["Mat Dehası"].typing,
+                biyolojiOnline: usersStatus["Biyolojinin Son Kalesi"].online,
+                biyolojiLastSeen: usersStatus["Biyolojinin Son Kalesi"].lastSeen,
+                biyolojiTyping: usersStatus["Biyolojinin Son Kalesi"].typing
+            });
+            socket.emit('request_last_seen_backup');
+        } else {
+            socket.emit('auth_fail', 'Geçersiz erişim şifresi!');
         }
     });
 
-    socket.on('auth', (password) => {
-        if (password === SIFRE_BIYOLOJI) currentUser = "Biyolojinin Son Kalesi";
-        else if (password === SIFRE_MATEMATIK) currentUser = "Mat Dehası";
+    socket.on('provide_last_seen_backup', (backup) => {
+        if (backup) {
+            if (backup.mat && usersStatus["Mat Dehası"].lastSeen === "Bilinmiyor") usersStatus["Mat Dehası"].lastSeen = backup.mat;
+            if (backup.biyoloji && usersStatus["Biyolojinin Son Kalesi"].lastSeen === "Bilinmiyor") usersStatus["Biyolojinin Son Kalesi"].lastSeen = backup.biyoloji;
+        }
+    });
 
-        if (currentUser) {
-            userStatus[currentUser].online = true;
-            userStatus[currentUser].socketId = socket.id;
-            
-            socket.emit('auth_success', { username: currentUser, statusList: userStatus });
-            broadcastStatuses();
-        } else {
-            socket.emit('auth_fail', 'Geçersiz Şifre!');
+    socket.on('chat_message', (msgData) => {
+        if (!authUser) return;
+
+        const timestamp = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        const messageId = '_' + Math.random().toString(36).substr(2, 9);
+
+        const fullMessage = {
+            id: messageId,
+            sender: authUser,
+            type: msgData.type,
+            text: msgData.text,
+            time: timestamp
+        };
+
+        // Mesajı odadaki herkese gönder
+        io.to('chat-room').emit('chat_message', fullMessage);
+
+        // --- AKILLI MAİL KONTROLÜ ---
+        const partnerName = authUser === "Mat Dehası" ? "Biyolojinin Son Kalesi" : "Mat Dehası";
+        
+        // Eğer mesajı alan kişi o an uygulamada aktif DEĞİLSE mail gönder
+        if (usersStatus[partnerName] && usersStatus[partnerName].online === false) {
+            const previewText = msgData.type === 'sticker' ? '[Bir Çıkartma Gönderdi]' : msgData.text;
+            sendNotificationEmail(authUser, previewText);
         }
     });
 
     socket.on('typing_status', (isTyping) => {
-        if (currentUser) {
-            userStatus[currentUser].typing = isTyping;
-            broadcastStatuses();
-        }
-    });
-
-    // Mimar Dokunuşu: Gelen veri artık obje veya düz metin olabilir
-    socket.on('chat_message', (msgData) => {
-        if (currentUser) {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-            
-            userStatus[currentUser].typing = false;
-            
-            // Eğer frontend doğrudan string yollarsa (eski sistem), geriye uyumluluk bozulmasın diye default 'text' yapıyoruz
-            const isObject = typeof msgData === 'object' && msgData !== null;
-            const messageType = isObject ? (msgData.type || 'text') : 'text';
-            const messageContent = isObject ? msgData.text : msgData;
-
-            const messageData = {
-                id: Math.random().toString(36).substr(2, 9),
-                type: messageType,         // 'text' veya 'sticker'
-                text: messageContent,      // Mesaj metni VEYA sticker dosya adı (Örn: s1.webp)
-                sender: currentUser,
-                time: timeStr,
-                read: false
-            };
-            
-            io.emit('chat_message', messageData);
-            broadcastStatuses();
-        }
+        if (!authUser) return;
+        usersStatus[authUser].typing = isTyping;
+        socket.to('chat-room').emit('status_update', {
+            matOnline: usersStatus["Mat Dehası"].online,
+            matLastSeen: usersStatus["Mat Dehası"].lastSeen,
+            matTyping: usersStatus["Mat Dehası"].typing,
+            biyolojiOnline: usersStatus["Biyolojinin Son Kalesi"].online,
+            biyolojiLastSeen: usersStatus["Biyolojinin Son Kalesi"].lastSeen,
+            biyolojiTyping: usersStatus["Biyolojinin Son Kalesi"].typing
+        });
     });
 
     socket.on('message_read', (data) => {
-        socket.broadcast.emit('message_read_confirm', { msgId: data.msgId });
+        socket.to('chat-room').emit('message_read_confirm', { msgId: data.msgId });
     });
 
     socket.on('disconnect', () => {
-        if (currentUser) {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-            
-            userStatus[currentUser].online = false;
-            userStatus[currentUser].lastSeen = "Bugün " + timeStr;
-            userStatus[currentUser].socketId = null;
-            userStatus[currentUser].typing = false;
+        if (authUser) {
+            const now = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+            usersStatus[authUser].online = false;
+            usersStatus[authUser].typing = false;
+            usersStatus[authUser].lastSeen = now;
 
-            broadcastStatuses();
+            io.to('chat-room').emit('status_update', {
+                matOnline: usersStatus["Mat Dehası"].online,
+                matLastSeen: usersStatus["Mat Dehası"].lastSeen,
+                matTyping: usersStatus["Mat Dehası"].typing,
+                biyolojiOnline: usersStatus["Biyolojinin Son Kalesi"].online,
+                biyolojiLastSeen: usersStatus["Biyolojinin Son Kalesi"].lastSeen,
+                biyolojiTyping: usersStatus["Biyolojinin Son Kalesi"].typing
+            });
         }
     });
 });
 
 http.listen(PORT, () => {
-    console.log(`Sunucu ${PORT} portunda çalışıyor...`);
+    console.log(`Sunucu ${PORT} portunda başarıyla ayağa kalktı.`);
 });
