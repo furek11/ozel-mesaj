@@ -79,14 +79,21 @@
 
             <div id="chat-messages" class="message-area"></div>
 
+            <div id="sticker-panel" class="hidden">
+                <div class="sticker-option" data-name="s1.webp"><img src="/assets/stickers/s1.webp" alt="Sticker 1"></div>
+                <div class="sticker-option" data-name="s2.webp"><img src="/assets/stickers/s2.webp" alt="Sticker 2"></div>
+                <div class="sticker-option" data-name="s3.webp"><img src="/assets/stickers/s3.webp" alt="Sticker 3"></div>
+                <div class="sticker-option" data-name="s4.webp"><img src="/assets/stickers/s4.webp" alt="Sticker 4"></div>
+            </div>
+
             <footer class="chat-footer">
                 <div class="footer-actions">
-                    <button type="button" id="emoji-dummy-btn">😀</button>
+                    <button type="button" id="sticker-btn" title="Çıkartma Gönder">🙂</button>
                     <button type="button" id="attach-dummy-btn">📎</button>
                 </div>
                 
                 <textarea id="message-input" placeholder="Bir mesaj yazın" rows="1" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" data-form-type="other" data-lpignore="true" name="not_a_card_field" style="resize: none;"></textarea>
-                          
+                                          
                 <button type="button" id="send-btn">
                     <svg viewBox="0 0 24 24" width="24" height="24">
                         <path fill="currentColor" d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"></path>

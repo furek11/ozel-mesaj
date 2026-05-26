@@ -354,7 +354,78 @@ html {
 }
 
 /* ==========================================================================
-   MOBILE RESPONSIVE
+   STIKER (ÇIKARTMA) VE MEDYA PAYLAŞIMI EKLEMESİ
+   ========================================================================== */
+
+/* Çıkartma Seçim Paneli Yapısı */
+#sticker-panel {
+    position: fixed;
+    bottom: 62px; /* Tam chat-footer'ın üst sınırından başlar */
+    right: 0;
+    width: 70%; /* Masaüstünde footer genişliği ile eşleşir */
+    height: 250px;
+    background-color: #1f2c34; /* WhatsApp panel arka planı */
+    border-top: 1px solid #2a3942;
+    border-left: 1px solid #222e35;
+    z-index: 999; /* Footer'ın (1000) hemen bir katman arkasında kalır */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 12px;
+    padding: 15px;
+    overflow-y: auto;
+}
+
+/* Panel İçindeki Çıkartma Seçenekleri */
+.sticker-option {
+    width: 100%;
+    aspect-ratio: 1; /* Kare form factor */
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.sticker-option:hover {
+    background-color: #2a3942; /* Seçim efekti */
+}
+
+.sticker-option img {
+    width: 65px;
+    height: 65px;
+    object-fit: contain;
+}
+
+/* Sohbet Alanındaki Çıkartma Mesaj Baloncuğu */
+.message.sticker-msg {
+    background-color: transparent !important; /* WhatsApp'taki gibi sticker'ın arkası şeffaf olur */
+    box-shadow: none !important;
+    padding: 0 !important;
+    max-width: 160px; /* Çıkartmanın ekranda devasa büyümesini engeller */
+}
+
+.chat-sticker {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+/* Çıkartma Mesajındaki Zaman Damgası Konumlandırması */
+.message.sticker-msg .time {
+    background-color: rgba(11, 20, 26, 0.6); /* Şeffaf arkada okunabilmesi için hafif koyu zemin */
+    padding: 2px 6px;
+    border-radius: 10px;
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    margin: 0;
+    color: #fff;
+}
+
+/* ==========================================================================
+    MOBILE RESPONSIVE
    ========================================================================== */
 @media (max-width: 768px) {
     .app-layout {
@@ -412,5 +483,12 @@ html {
     
     .message {
         max-width: 85%;
+    }
+
+    /* Mobile Sticker Responsive */
+    #sticker-panel {
+        width: 100% !important; /* Mobilde paneli tam genişlik yapıyoruz */
+        left: 0 !important;
+        grid-template-columns: repeat(4, 1fr); /* Mobilde yan yana 4 çıkartma sığdır */
     }
 }

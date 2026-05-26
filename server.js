@@ -59,7 +59,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Hassas Yazıyor Durum Kontrolü
     socket.on('typing_status', (isTyping) => {
         if (currentUser) {
             userStatus[currentUser].typing = isTyping;
@@ -67,20 +66,28 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('chat_message', (msg) => {
+    // Mimar Dokunuşu: Gelen veri artık obje veya düz metin olabilir
+    socket.on('chat_message', (msgData) => {
         if (currentUser) {
             const now = new Date();
             const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
             
             userStatus[currentUser].typing = false;
             
+            // Eğer frontend doğrudan string yollarsa (eski sistem), geriye uyumluluk bozulmasın diye default 'text' yapıyoruz
+            const isObject = typeof msgData === 'object' && msgData !== null;
+            const messageType = isObject ? (msgData.type || 'text') : 'text';
+            const messageContent = isObject ? msgData.text : msgData;
+
             const messageData = {
                 id: Math.random().toString(36).substr(2, 9),
-                text: msg,
+                type: messageType,         // 'text' veya 'sticker'
+                text: messageContent,      // Mesaj metni VEYA sticker dosya adı (Örn: s1.webp)
                 sender: currentUser,
                 time: timeStr,
                 read: false
             };
+            
             io.emit('chat_message', messageData);
             broadcastStatuses();
         }

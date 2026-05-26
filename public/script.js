@@ -16,6 +16,10 @@ const messageInput = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
 const chatFooter = document.querySelector('.chat-footer');
 
+// MİMAR EKLEMESİ: Sticker Elementleri
+const stickerBtn = document.getElementById('sticker-btn');
+const stickerPanel = document.getElementById('sticker-panel');
+
 const targetNameTop = document.getElementById('target-name-top');
 const targetNameSide = document.getElementById('target-name-side');
 const targetStatus = document.getElementById('target-status');
@@ -52,17 +56,22 @@ if (window.visualViewport) {
         const bottomOffset = totalHeight - vv.height - vv.offsetTop;
         
         if (bottomOffset > 30) {
-            // Klavye açık
+            // Klavye açık - Sticker panelini gizle ki çakışmasın
+            if (stickerPanel) stickerPanel.classList.add('hidden');
+            
             chatFooter.style.bottom = `${bottomOffset}px`;
-            // Mesaj alanının alt padding'ini footer yüksekliğine göre genişlet
             chatMessages.style.paddingBottom = `${bottomOffset + 75}px`;
         } else {
             // Klavye kapalı
             chatFooter.style.bottom = '0px';
-            chatMessages.style.paddingBottom = '80px';
+            // Eğer sticker paneli açıksa padding'i ona göre ayarla, değilse standart bırak
+            if (stickerPanel && !stickerPanel.classList.contains('hidden')) {
+                chatMessages.style.paddingBottom = '330px'; // Panel yüksekliği + footer payı
+            } else {
+                chatMessages.style.paddingBottom = '80px';
+            }
         }
         
-        // Tarayıcının hiyerarşiyi bozmaya yönelik istemsiz scroll hareketlerini engelle
         window.scrollTo(0, 0);
         
         setTimeout(() => {
@@ -75,13 +84,48 @@ if (window.visualViewport) {
     window.visualViewport.addEventListener('scroll', sulaFixedKlavyeMotoru);
 }
 
-// Odaklanma esnasında kadrajı kitleme
+// Odaklanma esnasında kadrajı kitleme ve sticker panelini kapatma
 messageInput.addEventListener('focus', () => {
+    if (stickerPanel) stickerPanel.classList.add('hidden');
     setTimeout(() => {
         window.scrollTo(0, 0);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }, 40);
 });
+
+// MİMAR EKLEMESİ: Sticker Paneli Açma / Kapatma Motoru
+if (stickerBtn && stickerPanel) {
+    stickerBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Eğer klavye açıksa input odağını kaldır (klavyeyi kapat)
+        if (document.activeElement === messageInput) {
+            messageInput.blur();
+        }
+        
+        stickerPanel.classList.toggle('hidden');
+        
+        // Panel açıldığında chat alanını yukarı kaydır ve padding ayarla
+        if (!stickerPanel.classList.contains('hidden')) {
+            chatMessages.style.paddingBottom = '330px';
+        } else {
+            chatMessages.style.paddingBottom = '80px';
+        }
+        
+        setTimeout(() => {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }, 50);
+    });
+
+    // Panel içindeki çıkartmalara tıklama olayı (Event Delegation)
+    stickerPanel.addEventListener('click', (e) => {
+        const clickedSticker = e.target.closest('.sticker-option');
+        if (clickedSticker) {
+            const stickerName = clickedSticker.getAttribute('data-name');
+            sendSticker(stickerName);
+        }
+    });
+}
 
 // Dinamik Textarea Yükseklik ve Yazıyor... Motoru
 messageInput.addEventListener('input', function() {
@@ -155,7 +199,6 @@ socket.on('auth_success', (data) => {
 
 socket.on('auth_fail', (msg) => { alert(msg); });
 
-// Gönder butonuna basıldığında klavyenin kapanmasını önleyen engelleme sistemi
 sendBtn.addEventListener('mousedown', (e) => {
     e.preventDefault();
     sendMessage();
@@ -173,12 +216,11 @@ function sendMessage() {
         isCurrentlyTyping = false;
         socket.emit('typing_status', false);
         
-        socket.emit('chat_message', text);
+        // Geriye dönük uyumluluk ve yapısal temizlik için obje tipinde gönderiyoruz
+        socket.emit('chat_message', { type: 'text', text: text });
         
         messageInput.value = '';
         messageInput.style.height = '38px';
-        
-        // Klavyeyi daima açık tut
         messageInput.focus();
         
         setTimeout(() => {
@@ -190,16 +232,47 @@ function sendMessage() {
     }
 }
 
+// MİMAR EKLEMESİ: Çıkartma Gönderme Fonksiyonu
+function sendSticker(stickerName) {
+    clearTimeout(typingTimeout);
+    isCurrentlyTyping = false;
+    socket.emit('typing_status', false);
+
+    // Sunucuya sticker tipinde veri paketini pasla
+    socket.emit('chat_message', { type: 'sticker', text: stickerName });
+
+    // Kullanıcı deneyimi için sticker gönderilince paneli kapatabiliriz (isteğe bağlı)
+    // stickerPanel.classList.add('hidden');
+    // chatMessages.style.paddingBottom = '80px';
+
+    setTimeout(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }, 10);
+}
+
+// ESNETİLMİŞ RE-RENDER MOTORU
 socket.on('chat_message', (data) => {
     const messageEl = document.createElement('div');
     messageEl.setAttribute('data-id', data.id);
     
-    if (data.sender === myUsername) {
-        messageEl.className = 'message sent';
-        messageEl.innerHTML = `${data.text}<span class="time">${data.time} <span class="status-tick" style="margin-left: 3px; color: #8696a0;">✓</span></span>`;
+    // Mesaj içeriğini türüne göre hazırlayan akıllı koruyucu mekanizma
+    let messageContent = "";
+    if (data.type === 'sticker') {
+        // Çıkartma ise img etiketi oluşturuyoruz
+        messageContent = `<img src="/assets/stickers/${data.text}" class="chat-sticker" alt="Sticker">`;
     } else {
-        messageEl.className = 'message received';
-        messageEl.innerHTML = `${data.text}<span class="time">${data.time}</span>`;
+        // Standart yazı ise düz text basıyoruz
+        messageContent = data.text;
+    }
+
+    // Gönderici durumuna göre sınıfları ata ve bas
+    if (data.sender === myUsername) {
+        // Eğer mesaj sticker ise arka plan rengini/baloncuğunu sıfırlamak için ekstra class ekleyebiliriz
+        messageEl.className = data.type === 'sticker' ? 'message sent sticker-msg' : 'message sent';
+        messageEl.innerHTML = `${messageContent}<span class="time">${data.time} <span class="status-tick" style="margin-left: 3px; color: #8696a0;">✓</span></span>`;
+    } else {
+        messageEl.className = data.type === 'sticker' ? 'message received sticker-msg' : 'message received';
+        messageEl.innerHTML = `${messageContent}<span class="time">${data.time}</span>`;
         socket.emit('message_read', { msgId: data.id });
     }
     
