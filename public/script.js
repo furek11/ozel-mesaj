@@ -29,6 +29,17 @@ const chatItem = document.querySelector('.chat-item');
 const backToListBtn = document.getElementById('back-to-list-btn');
 const fullscreenToggleBtn = document.getElementById('fullscreen-toggle-btn');
 
+// ==========================================================================
+// MİMARİ ENTEGRASYON: OTOMATİK 150 STICKER GENERATOR MOTORU
+// ==========================================================================
+if (stickerPanel) {
+    let stickerHTML = "";
+    for (let i = 1; i <= 150; i++) {
+        stickerHTML += `<div class="sticker-option" data-name="s${i}.webp"><img src="/assets/stickers/s${i}.webp" alt="Sticker ${i}"></div>`;
+    }
+    stickerPanel.innerHTML = stickerHTML;
+}
+
 socket.on('request_last_seen_backup', () => {
     const localBackup = {
         biyoloji: localStorage.getItem('lastSeen_biyoloji'),
@@ -159,15 +170,13 @@ messageInput.addEventListener('input', function() {
 // MİMAR DOKUNUŞU: Akıllı Mobil/Masaüstü Enter Ayrıştırma Motoru
 messageInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
-        // Mobilde miyiz kontrolü yap (Ekran genişliği veya dokunmatik testi)
         const isMobileDevice = window.innerWidth <= 768 || window.matchMedia("(pointer: coarse)").matches;
         
         if (isMobileDevice) {
-            // MOBİLDEYSEK: Enter tuşunun mesajı göndermesini ENGELLE (Doğal olarak alt satıra insen)
-            // ShiftKey kontrolüne gerek yok, normal Enter direkt alt satıra geçirecek
+            // MOBİLDEYSEK: Enter tuşu mesajı göndermez, sadece alt satıra indirir.
             return; 
         } else {
-            // MASAÜSTÜNDEYSEK: Klasik Enter gönderir, Shift+Enter alt satıra iner
+            // MASAÜSTÜNDEYSEK: Klasik Enter gönderir, Shift+Enter alt satıra iner.
             if (!e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
