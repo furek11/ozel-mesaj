@@ -246,7 +246,7 @@ html {
 .message-area {
     flex: 1;
     overflow-y: auto;
-    padding: 20px 5% 80px 5%; /* Alttan 80px boşluk sabit footer'ın mesajları kapatmasını önler */
+    padding: 20px 5% 80px 5%;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -295,7 +295,7 @@ html {
     position: fixed;
     bottom: 0;
     right: 0;
-    width: 70%; /* Desktop düzeninde sağ tarafı kaplasın */
+    width: 70%;
     min-height: 62px;
     max-height: 150px;
     height: auto;
@@ -304,9 +304,9 @@ html {
     align-items: flex-end;
     padding: 10px 16px;
     gap: 12px;
-    z-index: 1000; /* Her şeyin önünde kalmasını garanti eder */
+    z-index: 1000;
     border-left: 1px solid #222e35;
-    transition: bottom 0s linear; /* Klavye takibinde gecikme olmasın */
+    transition: bottom 0s linear;
 }
 
 .footer-actions {
@@ -360,49 +360,51 @@ html {
 /* Çıkartma Seçim Paneli Yapısı */
 #sticker-panel {
     position: fixed;
-    bottom: 62px; /* Tam chat-footer'ın üst sınırından başlar */
+    bottom: 62px;
     right: 0;
-    width: 70%; /* Masaüstünde footer genişliği ile eşleşir */
-    height: 250px;
-    background-color: #1f2c34; /* WhatsApp panel arka planı */
+    width: 70%;
+    height: 270px;
+    background-color: #1f2c34;
     border-top: 1px solid #2a3942;
     border-left: 1px solid #222e35;
-    z-index: 999; /* Footer'ın (1000) hemen bir katman arkasında kalır */
+    z-index: 999;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-    gap: 12px;
-    padding: 15px;
+    /* Masaüstünde ideal hücre yerleşimi */
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+    gap: 16px;
+    padding: 16px;
     overflow-y: auto;
+    overflow-x: hidden; /* Yatay kaymayı tamamen engelliyoruz */
 }
 
 /* Panel İçindeki Çıkartma Seçenekleri */
 .sticker-option {
     width: 100%;
-    aspect-ratio: 1; /* Kare form factor */
+    aspect-ratio: 1;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 6px;
+    border-radius: 8px;
     transition: background-color 0.2s ease;
 }
 
 .sticker-option:hover {
-    background-color: #2a3942; /* Seçim efekti */
+    background-color: #2a3942;
 }
 
 .sticker-option img {
-    width: 65px;
-    height: 65px;
+    width: 75px; /* Çıkartma boyutları ideal seçilebilirlik seviyesine çekildi */
+    height: 75px;
     object-fit: contain;
 }
 
 /* Sohbet Alanındaki Çıkartma Mesaj Baloncuğu */
 .message.sticker-msg {
-    background-color: transparent !important; /* WhatsApp'taki gibi sticker'ın arkası şeffaf olur */
+    background-color: transparent !important;
     box-shadow: none !important;
     padding: 0 !important;
-    max-width: 160px; /* Çıkartmanın ekranda devasa büyümesini engeller */
+    max-width: 160px;
 }
 
 .chat-sticker {
@@ -414,7 +416,7 @@ html {
 
 /* Çıkartma Mesajındaki Zaman Damgası Konumlandırması */
 .message.sticker-msg .time {
-    background-color: rgba(11, 20, 26, 0.6); /* Şeffaf arkada okunabilmesi için hafif koyu zemin */
+    background-color: rgba(11, 20, 26, 0.6);
     padding: 2px 6px;
     border-radius: 10px;
     position: absolute;
@@ -465,7 +467,6 @@ html {
         transform: translateX(0);
     }
 
-    /* Mobilde mesaj kutusu tüm ekran genişliğine yayılır */
     .chat-footer {
         width: 100% !important;
         left: 0 !important;
@@ -485,10 +486,21 @@ html {
         max-width: 85%;
     }
 
-    /* Mobile Sticker Responsive */
+    /* MİMARİ REVİZE: Gerçek WhatsApp Dikey Akışlı Mobil Sticker Paneli */
     #sticker-panel {
-        width: 100% !important; /* Mobilde paneli tam genişlik yapıyoruz */
+        width: 100% !important;
         left: 0 !important;
-        grid-template-columns: repeat(4, 1fr); /* Mobilde yan yana 4 çıkartma sığdır */
+        height: 280px; /* Panel yüksekliği parmak ergonomisi için uzatıldı */
+        /* Mobilde yan yana tam 3 veya ekrana göre 4 adet büyük sticker sığacak dikey düzen */
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
+        overflow-y: auto !important; /* Sadece yukarı aşağı scroll */
+        overflow-x: hidden !important; /* Sağa sola kayma kusuru tamamen imha edildi */
+        gap: 20px; /* Dokunma hatalarını önlemek için geniş aralık */
+        padding: 20px 16px;
+    }
+
+    .sticker-option img {
+        width: 80px; /* Mobilde de büyük ve net görünüm */
+        height: 80px;
     }
 }

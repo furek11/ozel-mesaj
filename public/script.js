@@ -16,7 +16,7 @@ const messageInput = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
 const chatFooter = document.querySelector('.chat-footer');
 
-// MİMAR EKLEMESİ: Sticker Elementleri
+// Sticker Elementleri
 const stickerBtn = document.getElementById('sticker-btn');
 const stickerPanel = document.getElementById('sticker-panel');
 
@@ -52,7 +52,6 @@ if (window.visualViewport) {
         const vv = window.visualViewport;
         const totalHeight = window.innerHeight;
         
-        // Klavyenin kapladığı alanı hesapla ve footer'ı tam üzerine yapıştır
         const bottomOffset = totalHeight - vv.height - vv.offsetTop;
         
         if (bottomOffset > 30) {
@@ -64,9 +63,8 @@ if (window.visualViewport) {
         } else {
             // Klavye kapalı
             chatFooter.style.bottom = '0px';
-            // Eğer sticker paneli açıksa padding'i ona göre ayarla, değilse standart bırak
             if (stickerPanel && !stickerPanel.classList.contains('hidden')) {
-                chatMessages.style.paddingBottom = '330px'; // Panel yüksekliği + footer payı
+                chatMessages.style.paddingBottom = '330px'; 
             } else {
                 chatMessages.style.paddingBottom = '80px';
             }
@@ -93,19 +91,17 @@ messageInput.addEventListener('focus', () => {
     }, 40);
 });
 
-// MİMAR EKLEMESİ: Sticker Paneli Açma / Kapatma Motoru
+// Sticker Paneli Açma / Kapatma Motoru
 if (stickerBtn && stickerPanel) {
     stickerBtn.addEventListener('click', (e) => {
         e.preventDefault();
         
-        // Eğer klavye açıksa input odağını kaldır (klavyeyi kapat)
         if (document.activeElement === messageInput) {
             messageInput.blur();
         }
         
         stickerPanel.classList.toggle('hidden');
         
-        // Panel açıldığında chat alanını yukarı kaydır ve padding ayarla
         if (!stickerPanel.classList.contains('hidden')) {
             chatMessages.style.paddingBottom = '330px';
         } else {
@@ -117,7 +113,6 @@ if (stickerBtn && stickerPanel) {
         }, 50);
     });
 
-    // Panel içindeki çıkartmalara tıklama olayı (Event Delegation)
     stickerPanel.addEventListener('click', (e) => {
         const clickedSticker = e.target.closest('.sticker-option');
         if (clickedSticker) {
@@ -161,10 +156,23 @@ messageInput.addEventListener('input', function() {
     }, 1800);
 });
 
+// MİMAR DOKUNUŞU: Akıllı Mobil/Masaüstü Enter Ayrıştırma Motoru
 messageInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
+    if (e.key === 'Enter') {
+        // Mobilde miyiz kontrolü yap (Ekran genişliği veya dokunmatik testi)
+        const isMobileDevice = window.innerWidth <= 768 || window.matchMedia("(pointer: coarse)").matches;
+        
+        if (isMobileDevice) {
+            // MOBİLDEYSEK: Enter tuşunun mesajı göndermesini ENGELLE (Doğal olarak alt satıra insen)
+            // ShiftKey kontrolüne gerek yok, normal Enter direkt alt satıra geçirecek
+            return; 
+        } else {
+            // MASAÜSTÜNDEYSEK: Klasik Enter gönderir, Shift+Enter alt satıra iner
+            if (!e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
     }
 });
 
@@ -216,7 +224,6 @@ function sendMessage() {
         isCurrentlyTyping = false;
         socket.emit('typing_status', false);
         
-        // Geriye dönük uyumluluk ve yapısal temizlik için obje tipinde gönderiyoruz
         socket.emit('chat_message', { type: 'text', text: text });
         
         messageInput.value = '';
@@ -232,42 +239,30 @@ function sendMessage() {
     }
 }
 
-// MİMAR EKLEMESİ: Çıkartma Gönderme Fonksiyonu
 function sendSticker(stickerName) {
     clearTimeout(typingTimeout);
     isCurrentlyTyping = false;
     socket.emit('typing_status', false);
 
-    // Sunucuya sticker tipinde veri paketini pasla
     socket.emit('chat_message', { type: 'sticker', text: stickerName });
-
-    // Kullanıcı deneyimi için sticker gönderilince paneli kapatabiliriz (isteğe bağlı)
-    // stickerPanel.classList.add('hidden');
-    // chatMessages.style.paddingBottom = '80px';
 
     setTimeout(() => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }, 10);
 }
 
-// ESNETİLMİŞ RE-RENDER MOTORU
 socket.on('chat_message', (data) => {
     const messageEl = document.createElement('div');
     messageEl.setAttribute('data-id', data.id);
     
-    // Mesaj içeriğini türüne göre hazırlayan akıllı koruyucu mekanizma
     let messageContent = "";
     if (data.type === 'sticker') {
-        // Çıkartma ise img etiketi oluşturuyoruz
         messageContent = `<img src="/assets/stickers/${data.text}" class="chat-sticker" alt="Sticker">`;
     } else {
-        // Standart yazı ise düz text basıyoruz
         messageContent = data.text;
     }
 
-    // Gönderici durumuna göre sınıfları ata ve bas
     if (data.sender === myUsername) {
-        // Eğer mesaj sticker ise arka plan rengini/baloncuğunu sıfırlamak için ekstra class ekleyebiliriz
         messageEl.className = data.type === 'sticker' ? 'message sent sticker-msg' : 'message sent';
         messageEl.innerHTML = `${messageContent}<span class="time">${data.time} <span class="status-tick" style="margin-left: 3px; color: #8696a0;">✓</span></span>`;
     } else {
