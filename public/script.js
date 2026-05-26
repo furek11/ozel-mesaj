@@ -29,6 +29,9 @@ const chatItem = document.querySelector('.chat-item');
 const backToListBtn = document.getElementById('back-to-list-btn');
 const fullscreenToggleBtn = document.getElementById('fullscreen-toggle-btn');
 
+// AKILLI ÖZELLİK: Ataç (Dosya Aktarma) Butonu
+const attachDummyBtn = document.getElementById('attach-dummy-btn');
+
 // ==========================================================================
 // MİMARİ ENTEGRASYON: OTOMATİK 149 STICKER GENERATOR MOTORU
 // ==========================================================================
@@ -41,13 +44,12 @@ if (stickerPanel) {
 }
 
 // ==========================================================================
-// AKILLI ANİMASYON DURDURMA VE SONSUZ TIKLAMA MOTORU (YENİ)
+// AKILLI ANİMASYON DURDURMA VE SONSUZ TIKLAMA MOTORU
 // ==========================================================================
 function manageStickerAnimation(imgElement) {
     const animatedSrc = imgElement.src;
     let stopTimeout = null;
 
-    // Görseli o anki karede donduran fonksiyon (Canvas Hilesi)
     const freezeImage = () => {
         if (!imgElement.complete || imgElement.naturalWidth === 0) {
             setTimeout(freezeImage, 200);
@@ -66,25 +68,97 @@ function manageStickerAnimation(imgElement) {
         }
     };
 
-    // KURAL 1: İlk yüklendiğinde/gönderildiğinde 3 saniye (3 defa) oynasın ve dursun
     stopTimeout = setTimeout(() => {
         freezeImage();
     }, 3000);
 
-    // KURAL 2: Sonsuz tıklama mekanizması
     imgElement.style.cursor = "pointer";
     imgElement.addEventListener('click', () => {
-        // Eğer arkada işleyen aktif bir durdurma zamanlayıcısı varsa iptal et (çakışmasın)
         if (stopTimeout) clearTimeout(stopTimeout);
 
-        // Görseli tekrar hareketli hâline döndür
         imgElement.src = animatedSrc;
         imgElement.classList.remove('frozen');
 
-        // Her tıklamada tam 2 saniye (2 defa) oynasın ve tekrar donsun
         stopTimeout = setTimeout(() => {
             freezeImage();
         }, 2000);
+    });
+}
+
+// ==========================================================================
+// ÖZEL YETENEK: MAT DEHASI İÇİN SOHBETİ TXT OLARAK DIŞARI AKTARMA MOTORU
+// ==========================================================================
+if (attachDummyBtn) {
+    attachDummyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Güvenlik Duvarı: Giriş yapan kişi "Mat Dehası" değilse butonu tamamen işlevsiz kıl
+        if (myUsername !== "Mat Dehası") {
+            alert("Bu özellik yalnızca yetkili kullanıcıya (Mat Dehası) açıktır.");
+            return;
+        }
+
+        // Sohbet alanındaki tüm mesaj elementlerini topla
+        const messages = chatMessages.querySelectorAll('.message');
+        if (messages.length === 0) {
+            alert("Dışarı aktarılacak mesaj bulunamadı.");
+            return;
+        }
+
+        let txtContent = `==================================================\n`;
+        txtContent += `       GÜVENLİ SOHBET GEÇMİŞİ DIŞARI AKTARMA       \n`;
+        txtContent += `   Tarih: ${new Date().toLocaleString('tr-TR')}   \n`;
+        txtContent += `==================================================\n\n`;
+
+        messages.forEach((msg) => {
+            const isSent = msg.classList.contains('sent');
+            const sender = isSent ? myUsername : partnerUsername;
+            
+            const timeEl = msg.querySelector('.time');
+            let timeText = "";
+            if (timeEl) {
+                // Zaman metnindeki ✓ işaretlerini temizle
+                timeText = timeEl.innerText.replace(/[✓]/g, '').trim();
+            }
+
+            let msgText = "";
+            if (msg.classList.contains('sticker-msg')) {
+                const img = msg.querySelector('img');
+                if (img) {
+                    // Eğer sticker ise dosya adını çek
+                    const srcParts = img.src.split('/');
+                    msgText = `[Çıkartma: ${srcParts[srcParts.length - 1]}]`;
+                } else {
+                    msgText = "[Çıkartma]";
+                }
+            } else {
+                // Normal metin mesajı ise zaman etiketini klonlamadan sadece ana metni al
+                let clone = msg.cloneNode(true);
+                const timeNode = clone.querySelector('.time');
+                if (timeNode) timeNode.remove();
+                msgText = clone.innerText.trim();
+            }
+
+            txtContent += `[${timeText}] ${sender}: ${msgText}\n`;
+        });
+
+        txtContent += `\n==================================================\n`;
+        txtContent += `            SOHBET GEÇMİŞİNİN SONUDUR.            \n`;
+        txtContent += `==================================================\n`;
+
+        // Dosya İndirme Protokolü (Blob Yapısı)
+        const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        
+        // Dosya adı formatı: sohbet_gecmisi_2026-05-26.txt gibi dinamik olsun
+        const dateStr = new Date().toISOString().slice(0,10);
+        link.href = url;
+        link.setAttribute("download", `sohbet_gecmisi_${dateStr}.txt`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     });
 }
 
@@ -105,12 +179,10 @@ function activateFullscreen() {
     }
 }
 
-// Demir Yumruk: Mutlak Fixed Klavye Sabitleme ve Konumlandırma Motoru V4
 if (window.visualViewport) {
     const sulaFixedKlavyeMotoru = () => {
         const vv = window.visualViewport;
         const totalHeight = window.innerHeight;
-        
         const bottomOffset = totalHeight - vv.height - vv.offsetTop;
         
         if (bottomOffset > 30) {
