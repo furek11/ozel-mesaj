@@ -30,14 +30,62 @@ const backToListBtn = document.getElementById('back-to-list-btn');
 const fullscreenToggleBtn = document.getElementById('fullscreen-toggle-btn');
 
 // ==========================================================================
-// MİMARİ ENTEGRASYON: OTOMATİK 150 STICKER GENERATOR MOTORU
+// MİMARİ ENTEGRASYON: OTOMATİK 149 STICKER GENERATOR MOTORU
 // ==========================================================================
 if (stickerPanel) {
     let stickerHTML = "";
-    for (let i = 1; i <= 150; i++) {
+    for (let i = 1; i <= 149; i++) {
         stickerHTML += `<div class="sticker-option" data-name="s${i}.webp"><img src="/assets/stickers/s${i}.webp" alt="Sticker ${i}"></div>`;
     }
     stickerPanel.innerHTML = stickerHTML;
+}
+
+// ==========================================================================
+// AKILLI ANİMASYON DURDURMA VE SONSUZ TIKLAMA MOTORU (YENİ)
+// ==========================================================================
+function manageStickerAnimation(imgElement) {
+    const animatedSrc = imgElement.src;
+    let stopTimeout = null;
+
+    // Görseli o anki karede donduran fonksiyon (Canvas Hilesi)
+    const freezeImage = () => {
+        if (!imgElement.complete || imgElement.naturalWidth === 0) {
+            setTimeout(freezeImage, 200);
+            return;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = imgElement.naturalWidth;
+        canvas.height = imgElement.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        try {
+            ctx.drawImage(imgElement, 0, 0);
+            imgElement.src = canvas.toDataURL('image/webp');
+            imgElement.classList.add('frozen');
+        } catch (e) {
+            console.error("Sticker dondurulamadı:", e);
+        }
+    };
+
+    // KURAL 1: İlk yüklendiğinde/gönderildiğinde 3 saniye (3 defa) oynasın ve dursun
+    stopTimeout = setTimeout(() => {
+        freezeImage();
+    }, 3000);
+
+    // KURAL 2: Sonsuz tıklama mekanizması
+    imgElement.style.cursor = "pointer";
+    imgElement.addEventListener('click', () => {
+        // Eğer arkada işleyen aktif bir durdurma zamanlayıcısı varsa iptal et (çakışmasın)
+        if (stopTimeout) clearTimeout(stopTimeout);
+
+        // Görseli tekrar hareketli hâline döndür
+        imgElement.src = animatedSrc;
+        imgElement.classList.remove('frozen');
+
+        // Her tıklamada tam 2 saniye (2 defa) oynasın ve tekrar donsun
+        stopTimeout = setTimeout(() => {
+            freezeImage();
+        }, 2000);
+    });
 }
 
 socket.on('request_last_seen_backup', () => {
@@ -66,13 +114,10 @@ if (window.visualViewport) {
         const bottomOffset = totalHeight - vv.height - vv.offsetTop;
         
         if (bottomOffset > 30) {
-            // Klavye açık - Sticker panelini gizle ki çakışmasın
             if (stickerPanel) stickerPanel.classList.add('hidden');
-            
             chatFooter.style.bottom = `${bottomOffset}px`;
             chatMessages.style.paddingBottom = `${bottomOffset + 75}px`;
         } else {
-            // Klavye kapalı
             chatFooter.style.bottom = '0px';
             if (stickerPanel && !stickerPanel.classList.contains('hidden')) {
                 chatMessages.style.paddingBottom = '330px'; 
@@ -80,20 +125,16 @@ if (window.visualViewport) {
                 chatMessages.style.paddingBottom = '80px';
             }
         }
-        
         window.scrollTo(0, 0);
-        
         setTimeout(() => {
             window.scrollTo(0, 0);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }, 15);
     };
-
     window.visualViewport.addEventListener('resize', sulaFixedKlavyeMotoru);
     window.visualViewport.addEventListener('scroll', sulaFixedKlavyeMotoru);
 }
 
-// Odaklanma esnasında kadrajı kitleme ve sticker panelini kapatma
 messageInput.addEventListener('focus', () => {
     if (stickerPanel) stickerPanel.classList.add('hidden');
     setTimeout(() => {
@@ -102,23 +143,18 @@ messageInput.addEventListener('focus', () => {
     }, 40);
 });
 
-// Sticker Paneli Açma / Kapatma Motoru
 if (stickerBtn && stickerPanel) {
     stickerBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        
         if (document.activeElement === messageInput) {
             messageInput.blur();
         }
-        
         stickerPanel.classList.toggle('hidden');
-        
         if (!stickerPanel.classList.contains('hidden')) {
             chatMessages.style.paddingBottom = '330px';
         } else {
             chatMessages.style.paddingBottom = '80px';
         }
-        
         setTimeout(() => {
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }, 50);
@@ -133,7 +169,6 @@ if (stickerBtn && stickerPanel) {
     });
 }
 
-// Dinamik Textarea Yükseklik ve Yazıyor... Motoru
 messageInput.addEventListener('input', function() {
     this.style.height = '38px'; 
     const nextHeight = this.scrollHeight;
@@ -143,7 +178,6 @@ messageInput.addEventListener('input', function() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     const currentText = this.value;
-
     if (currentText.trim() === "") {
         clearTimeout(typingTimeout);
         if (isCurrentlyTyping) {
@@ -152,12 +186,10 @@ messageInput.addEventListener('input', function() {
         }
         return;
     }
-
     if (!isCurrentlyTyping) {
         isCurrentlyTyping = true;
         socket.emit('typing_status', true);
     }
-
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
         if (isCurrentlyTyping) {
@@ -167,16 +199,12 @@ messageInput.addEventListener('input', function() {
     }, 1800);
 });
 
-// MİMAR DOKUNUŞU: Akıllı Mobil/Masaüstü Enter Ayrıştırma Motoru
 messageInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
         const isMobileDevice = window.innerWidth <= 768 || window.matchMedia("(pointer: coarse)").matches;
-        
         if (isMobileDevice) {
-            // MOBİLDEYSEK: Enter tuşu mesajı göndermez, sadece alt satıra indirir.
             return; 
         } else {
-            // MASAÜSTÜNDEYSEK: Klasik Enter gönderir, Shift+Enter alt satıra iner.
             if (!e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
@@ -200,15 +228,11 @@ passwordInput.addEventListener('keypress', (e) => {
 socket.on('auth_success', (data) => {
     myUsername = data.username;
     partnerUsername = myUsername === "Biyolojinin Son Kalesi" ? "Mat Dehası" : "Biyolojinin Son Kalesi";
-    
     activateFullscreen();
-
     loginScreen.classList.add('hidden');
     appContainer.classList.remove('hidden');
-    
     targetNameTop.innerText = partnerUsername;
     targetNameSide.innerText = partnerUsername;
-    
     if (data.statusList) {
         updateStatusUI(data.statusList[partnerUsername]);
     }
@@ -232,13 +256,10 @@ function sendMessage() {
         clearTimeout(typingTimeout);
         isCurrentlyTyping = false;
         socket.emit('typing_status', false);
-        
         socket.emit('chat_message', { type: 'text', text: text });
-        
         messageInput.value = '';
         messageInput.style.height = '38px';
         messageInput.focus();
-        
         setTimeout(() => {
             chatMessages.scrollTop = chatMessages.scrollHeight;
             window.scrollTo(0, 0);
@@ -252,9 +273,7 @@ function sendSticker(stickerName) {
     clearTimeout(typingTimeout);
     isCurrentlyTyping = false;
     socket.emit('typing_status', false);
-
     socket.emit('chat_message', { type: 'sticker', text: stickerName });
-
     setTimeout(() => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }, 10);
@@ -265,8 +284,9 @@ socket.on('chat_message', (data) => {
     messageEl.setAttribute('data-id', data.id);
     
     let messageContent = "";
+
     if (data.type === 'sticker') {
-        messageContent = `<img src="/assets/stickers/${data.text}" class="chat-sticker" alt="Sticker">`;
+        messageContent = `<img src="/assets/stickers/${data.text}" class="chat-sticker dynamic-anim-sticker" alt="Sticker">`;
     } else {
         messageContent = data.text;
     }
@@ -281,6 +301,14 @@ socket.on('chat_message', (data) => {
     }
     
     chatMessages.appendChild(messageEl);
+
+    if (data.type === 'sticker') {
+        const newlyAddedImg = messageEl.querySelector('.dynamic-anim-sticker');
+        if (newlyAddedImg) {
+            manageStickerAnimation(newlyAddedImg);
+        }
+    }
+
     chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
