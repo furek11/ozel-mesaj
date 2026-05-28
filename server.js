@@ -9,34 +9,40 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static('public'));
 
-// Kullanıcı durumlarını hafızada tutan obje
+// Kullanıcı durumlarını hafızada tutan dinamik state objesi
 const usersStatus = {
     "Mat Dehası": { online: false, lastSeen: "Bilinmiyor", typing: false },
     "Biyolojinin Son Kalesi": { online: false, lastSeen: "Bilinmiyor", typing: false }
 };
 
 // ==========================================================================
-// MAİL BİLDİRİM MOTORU (NODEMAILER YAPILANDIRMASI)
+// MAİL BİLDİRİM MOTORU (RENDER BULUT UYUMLU TLS YAPILANDIRMASI)
 // ==========================================================================
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587, 
+    secure: false, 
     auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        pass: process.env.EMAIL_PASS 
+    },
+    tls: {
+        rejectUnauthorized: false 
     }
 });
 
-// Mail Gönderme Fonksiyonu
 function sendNotificationEmail(senderName, messagePreview) {
+    const targetEmail = process.env.RECEIVER_EMAIL || process.env.EMAIL_USER;
+
     const mailOptions = {
         from: `"Güvenli Sohbet Bildirimi" <${process.env.EMAIL_USER}>`,
-        to: process.env.RECEIVER_EMAIL,
+        to: targetEmail,
         subject: `🔔 ${senderName} Yeni Mesaj Gönderdi!`,
         text: `Merhaba, \n\nSohbet odasında ${senderName} size yeni bir mesaj bıraktı.\n\nMesaj Önizlemesi: ${messagePreview}\n\nOkumak için hemen uygulamaya giriş yapın.`,
-        html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; max-width: 500px;">
+        html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; max-width: 500px; background-color: #ffffff; color: #333333;">
                 <h2 style="color: #00a884; margin-top: 0;">🔔 Yeni Mesaj Bildirimi</h2>
                 <p><strong>${senderName}</strong> size yeni bir mesaj gönderdi.</p>
-                <blockquote style="background: #f9f9f9; padding: 10px 15px; border-left: 4px solid #00a884; margin: 15px 0;">
+                <blockquote style="background: #f9f9f9; padding: 10px 15px; border-left: 4px solid #00a884; margin: 15px 0; color: #555555; font-style: italic;">
                     ${messagePreview}
                 </blockquote>
                 <p style="font-size: 13px; color: #8696a0;">Bu otomatik bir sistem bildirimidir. Lütfen bu maili yanıtlamayın.</p>
@@ -45,9 +51,9 @@ function sendNotificationEmail(senderName, messagePreview) {
 
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
-            console.log('Mail gönderme hatası:', error);
+            console.log('Nodemailer Motor Hatası:', error);
         } else {
-            console.log('Bildirim maili başarıyla gönderildi:', info.response);
+            console.log('Bildirim maili başarıyla fırlatıldı:', info.response);
         }
     });
 }
@@ -59,10 +65,13 @@ io.on('connection', (socket) => {
     let authUser = null;
 
     socket.on('auth', (password) => {
-        // Basit şifre kontrol mantığı (Projene göre burayı esnetebilirsin)
-        if (password === "mat123") {
+        // RENDER DEĞİŞKENLERİYLE TAM EŞİTLEME (pkn.png doğrultusunda)
+        const MAT_PASS = process.env.SIFRE_MATEMATIK || "mat123";
+        const BIO_PASS = process.env.SIFRE_BIYOLOJI || "bio123";
+
+        if (password === MAT_PASS) {
             authUser = "Mat Dehası";
-        } else if (password === "bio123") {
+        } else if (password === BIO_PASS) {
             authUser = "Biyolojinin Son Kalesi";
         }
 
@@ -72,6 +81,7 @@ io.on('connection', (socket) => {
             usersStatus[authUser].typing = false;
             
             socket.emit('auth_success', { username: authUser, statusList: usersStatus });
+            
             io.to('chat-room').emit('status_update', {
                 matOnline: usersStatus["Mat Dehası"].online,
                 matLastSeen: usersStatus["Mat Dehası"].lastSeen,
@@ -80,7 +90,11 @@ io.on('connection', (socket) => {
                 biyolojiLastSeen: usersStatus["Biyolojinin Son Kalesi"].lastSeen,
                 biyolojiTyping: usersStatus["Biyolojinin Son Kalesi"].typing
             });
-            socket.emit('request_last_seen_backup');
+
+            setTimeout(() => {
+                socket.emit('request_last_seen_backup');
+            }, 100);
+
         } else {
             socket.emit('auth_fail', 'Geçersiz erişim şifresi!');
         }
@@ -96,6 +110,7 @@ io.on('connection', (socket) => {
     socket.on('chat_message', (msgData) => {
         if (!authUser) return;
 
+        // Render'a girilen TZ=Europe/Istanbul sayesinde sunucu saati Türkiye saatine göre basılacak
         const timestamp = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
         const messageId = '_' + Math.random().toString(36).substr(2, 9);
 
@@ -107,13 +122,10 @@ io.on('connection', (socket) => {
             time: timestamp
         };
 
-        // Mesajı odadaki herkese gönder
         io.to('chat-room').emit('chat_message', fullMessage);
 
-        // --- AKILLI MAİL KONTROLÜ ---
         const partnerName = authUser === "Mat Dehası" ? "Biyolojinin Son Kalesi" : "Mat Dehası";
         
-        // Eğer mesajı alan kişi o an uygulamada aktif DEĞİLSE mail gönder
         if (usersStatus[partnerName] && usersStatus[partnerName].online === false) {
             const previewText = msgData.type === 'sticker' ? '[Bir Çıkartma Gönderdi]' : msgData.text;
             sendNotificationEmail(authUser, previewText);
